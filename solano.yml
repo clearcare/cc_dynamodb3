@@ -1,0 +1,6 @@
+:tests:
+  - "py.test --runxfail --runslow tests/"
+:python:
+  :pip_requirements_file: test_requirements.txt
+:environment:
+  'CC_DYNAMODB_CONFIG': 'cc_dynamodb.config.tddium'

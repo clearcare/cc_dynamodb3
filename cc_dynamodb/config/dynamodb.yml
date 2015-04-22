@@ -1,0 +1,52 @@
+schemas:
+    nps_survey:
+        -
+            type: HashKey
+            name: agency_id
+            data_type: NUMBER
+        -
+            type: RangeKey
+            name: profile_id
+            data_type: NUMBER
+
+global_indexes:
+    change_in_condition:
+        -
+            name: SavedInRDB
+            type: GlobalAllIndex
+            parts:
+                -
+                    type: HashKey
+                    name: saved_in_rdb
+                    data_type: NUMBER  # set to 0 when not saved
+                -
+                    type: RangeKey
+                    name: time
+                    data_type: NUMBER
+
+indexes:
+    change_in_condition:
+        -
+            name: SessionId
+            type: AllIndex
+            parts:
+                -
+                    type: HashKey
+                    name: carelog_id
+                    data_type: NUMBER
+                -
+                    type: RangeKey
+                    name: session_id
+                    data_type: NUMBER
+
+columns:  # not required by dynamodb, but helps us remember what data might be in there...
+    nps_survey:
+        recommend_score: NUMBER
+        comments: STRING
+        favorite: STRING
+        change: STRING
+
+default_throughput:
+    read: 10
+    write: 10
+# TODO: figure out throughput and prefixing
