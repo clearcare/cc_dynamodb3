@@ -1,9 +1,5 @@
-def test_success():
+def test_success(fake_config):
     import cc_dynamodb
-    cc_dynamodb.set_config(
-        aws_access_key_id='<KEY>',
-        aws_secret_access_key='<SECRET>',
-        namespace='dev_')
 
     config = cc_dynamodb.get_config()
     assert config.aws_access_key_id == '<KEY>'

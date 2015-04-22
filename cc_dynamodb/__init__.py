@@ -51,7 +51,7 @@ def set_config(**kwargs):
     if not _cached_config.aws_secret_access_key:
         raise ConfigurationError('Missing aws_secret_access_key kwarg OR environment variable CC_DYNAMODB_SECRET_ACCESS_KEY')
 
-    logger.event('cc_dynamodb.set_config', message='config loaded')
+    logger.event('cc_dynamodb.set_config', status='config loaded')
 
 
 def get_config(**kwargs):
@@ -135,7 +135,7 @@ def get_table_columns(table_name):
             (column_name, getattr(types, column_type))
                 for column_name, column_type in config['columns'][table_name].items())
     except KeyError:
-        logger.exception('cc_dynamodb.UnknownTable', table_name=table_name, config=config.toDict())
+        logger.exception('UnknownTable: %s' % table_name, extra={'config': config})
         raise UnknownTableException('Unknown table: %s' % table_name)
 
 
@@ -155,12 +155,16 @@ def get_table(table_name, connection=None):
     )
 
 
+def list_table_names():
+    return get_config().yaml['schemas'].keys()
+
+
 def create_table(table_name, connection=None, throughput=False):
     prefixed_table_name = get_table_name(table_name)
 
     if throughput == False:
-    	config = get_config().yaml
-        throughput = config.default_throughput.toDict()
+    	config = get_config()
+        throughput = config.yaml['default_throughput']
 
     return table.Table.create(
         prefixed_table_name,

@@ -3,3 +3,4 @@ boto>=2.31.1
 PyYAML>=3.10
 -e git+git@github.com:clearcare/cc_logger.git@0.0.4#egg=cc_logger
 -e git+https://github.com/shokunin/python-logstash-formatter.git@3c3d218226#egg=logstash_formatter
+-e git+https://github.com/spulec/moto.git@0.4.1#egg=moto

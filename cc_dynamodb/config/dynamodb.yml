@@ -8,6 +8,42 @@ schemas:
             type: RangeKey
             name: profile_id
             data_type: NUMBER
+    nps_survey_2015_q1:
+        -
+            type: HashKey
+            name: agency_id
+            data_type: NUMBER
+        -
+            type: RangeKey
+            name: profile_id
+            data_type: NUMBER
+    telephony_call_logs:
+        -
+            type: HashKey
+            name: session_id
+            data_type: NUMBER
+        -
+            type: RangeKey
+            name: time
+            data_type: NUMBER
+    change_in_condition:
+        -
+            type: HashKey
+            name: carelog_id
+            data_type: NUMBER
+        -
+            type: RangeKey
+            name: time
+            data_type: NUMBER
+    conversion_report:
+        -
+            type: HashKey
+            name: time
+            data_type: NUMBER
+        -
+            type: RangeKey
+            name: agency_id
+            data_type: NUMBER
 
 global_indexes:
     change_in_condition:
@@ -45,8 +81,47 @@ columns:  # not required by dynamodb, but helps us remember what data might be i
         comments: STRING
         favorite: STRING
         change: STRING
+    nps_survey_2015_q1:
+        recommend_score: NUMBER
+        comments: STRING
+    telephony_call_logs:
+        direction: STRING
+        contents: STRING
+    conversion_report:
+        autopay_enabled: NUMBER
+        e_pay_account_id: STRING
+        e_pay_account_token: STRING
+        e_pay_activated: STRING
+        e_pay_enable: NUMBER
+        e_pay_merchant_id: STRING
+        e_pay_settings_confirmed: NUMBER
+        e_pay_terminal_id: STRING
+        name: STRING
+        num_clients: NUMBER
+        num_clients_with_e_payers: NUMBER
+        num_invoices: NUMBER
+        num_regular_payments: NUMBER
+        subdomain: STRING
+        total_invoice_amount: NUMBER
+        total_regular_payment_amount: NUMBER
+    change_in_condition:
+        saved_in_rdb: NUMBER
+        session_id: NUMBER
+        rdb_id: NUMBER
+        3_overall_differences: NUMBER
+        3_reduced_alertness: NUMBER
+        3_agitated_confused: NUMBER
+        3_pain: NUMBER
+        4_mobility: NUMBER
+        4_stand_walk_changed: NUMBER
+        4_fall_or_slip: NUMBER
+        5_eating_drinking_changed: NUMBER
+        6_toileting: NUMBER
+        6_urination_change: NUMBER
+        6_constipation: NUMBER
+        7_skin_condition_swelling: NUMBER
+        7_skin_rash_wound: NUMBER
 
 default_throughput:
     read: 10
     write: 10
-# TODO: figure out throughput and prefixing
