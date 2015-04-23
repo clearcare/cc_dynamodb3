@@ -3,6 +3,8 @@ import os
 
 from bunch import Bunch
 
+DEFAULT_ENV = 'cc_dynamodb.config.base'
+
 
 class Config(Bunch):
     def __init__(self):
@@ -11,15 +13,16 @@ class Config(Bunch):
 
         module_name = os.environ.get(variable_name)
         if not module_name:
-            raise RuntimeError('The environment variable %r is not set '
-                               'and as such configuration could not be '
-                               'loaded.  Set this variable and make it '
-                               'point to a configuration file, e.g. %s' %
-                               (variable_name, 'cc_dynamodb.config.base'))
+            import logging
+            logging.warning('The environment variable %r is not set.'
+                            'Defaulting to "%s"' %
+                            (variable_name, DEFAULT_ENV))
+            module_name = DEFAULT_ENV
+
         try:
             module = importlib.import_module(module_name)
         except ImportError as e:
-            e.strerror = 'Unable to load configuration file (%s)' % e.strerror
+            e.message = 'Unable to load configuration file (%s)' % e.message
             raise
 
         for key in dir(module):
