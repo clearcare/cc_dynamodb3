@@ -1,13 +1,3 @@
-"""
-Usage:
-
-dynamodb.set_config(
-    namespace='dev_',
-    aws_access_key_id='<YOUR AWS KEY>'
-    aws_secret_access_key='<YOUR AWS SECRET>')
-
-dynamodb.get_table('some_table_name')
-"""
 import copy
 import os
 

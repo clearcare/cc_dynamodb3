@@ -14,8 +14,8 @@ class Config(Bunch):
             raise RuntimeError('The environment variable %r is not set '
                                'and as such configuration could not be '
                                'loaded.  Set this variable and make it '
-                               'point to a configuration file' %
-                               variable_name)
+                               'point to a configuration file, e.g. %s' %
+                               (variable_name, 'cc_dynamodb.config.base'))
         try:
             module = importlib.import_module(module_name)
         except ImportError as e:
