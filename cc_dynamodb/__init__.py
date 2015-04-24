@@ -21,7 +21,8 @@ _cached_config = None
 def set_config(**kwargs):
     global _cached_config
 
-    with open(config['CONFIG_PATH']) as config_file:
+    config_path = kwargs.pop('table_config', config['CONFIG_PATH'])
+    with open(config_path) as config_file:
         yaml_config = yaml.load(config_file)
 
     _cached_config = Bunch({
@@ -93,8 +94,8 @@ def _get_table_metadata(table_name):
 
     schema = _build_keys(keys_config)
 
-    global_indexes_config = config['global_indexes'].get(table_name, [])
-    indexes_config = config['indexes'].get(table_name, [])
+    global_indexes_config = config.get('global_indexes', {}).get(table_name, [])
+    indexes_config = config.get('indexes', {}).get(table_name, [])
 
     return dict(
         schema=schema,
