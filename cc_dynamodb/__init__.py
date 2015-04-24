@@ -88,7 +88,7 @@ def _get_table_metadata(table_name):
     try:
         keys_config = config['schemas'][table_name]
     except KeyError:
-        logger.exception('cc_dynamodb.UnknownTable', table_name=table_name, config=config.toDict())
+        logger.exception('cc_dynamodb.UnknownTable', extra=dict(table_name=table_name, config=config))
         raise UnknownTableException('Unknown table: %s' % table_name)
 
     schema = _build_keys(keys_config)
