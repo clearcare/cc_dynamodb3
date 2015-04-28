@@ -19,3 +19,9 @@ table = cc_dynamodb.get_table('employment_screening_reports')
     # and loading the schema and indexes from the config.
 table.scan()  # Table uses boto dynamodb2 interface
 ```
+
+# TODO:
+
+* Update tables to match indexes/throughput, if they already exist
+* Easier configuration setup (especially for testing)
+* Allow external repos to mock without needingo install `moto`
