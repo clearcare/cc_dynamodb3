@@ -109,6 +109,25 @@ def get_table_name(table_name):
     return get_config().namespace + table_name
 
 
+def get_reverse_table_name(table_name):
+    '''Prefixes the table name for the different environments/settings.'''
+    prefix_length = len(get_config().namespace)
+    return table_name[prefix_length:]
+
+
+def get_table_index(table_name, index_name):
+    """Given a table name and an index name, return the index."""
+    import cc_dynamodb
+    config = cc_dynamodb.get_config()
+    all_indexes = (config.yaml.get('indexes', {}).items() +
+                   config.yaml.get('global_indexes', {}).items())
+    for config_table_name, table_indexes in all_indexes:
+        if config_table_name == table_name:
+            for index in table_indexes:
+                if index['name'] == index_name:
+                    return index
+
+
 def get_connection():
     """Returns a DynamoDBConnection even if credentials are invalid."""
     config = get_config()
