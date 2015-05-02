@@ -139,6 +139,8 @@ def get_connection():
 
 
 def get_table_columns(table_name):
+    """Return known columns for a table and their data type."""
+    # TODO: see if table.describe() can return what dynamodb knows instead.
     config = get_config().yaml
     try:
         return dict(
@@ -166,10 +168,12 @@ def get_table(table_name, connection=None):
 
 
 def list_table_names():
+    """List known table names from configuration, without namespace."""
     return get_config().yaml['schemas'].keys()
 
 
 def create_table(table_name, connection=None, throughput=False):
+    """Create table. Throws an error if table already exists."""
     prefixed_table_name = get_table_name(table_name)
 
     if throughput == False:

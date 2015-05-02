@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 def mock_table_with_data(table_name, data):
-    '''Create a table (using prefixed method) and populate it with array of items from data.
+    '''Create a table and populate it with array of items from data.
 
     Example:
 
@@ -93,6 +93,16 @@ class MockQuery2(moto.core.models.MockAWS):
         self.patcher.stop()
 
 def mock_query_2(func=None):
+    """Use this when testing query_2 with secondary index.
+
+    Can be used as a decorator or a context manager (aka via the `with` statement).
+    Similar to how you would use `moto`'s `mock_dynamodb2`.
+
+    Example:
+
+        with mock_query_2():
+            items = table.query_2(some_column__eq='value', index='SomeColumnIndex')
+    """
     if func:
         return MockQuery2()(func)
     else:
