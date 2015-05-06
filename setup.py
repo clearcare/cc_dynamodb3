@@ -7,7 +7,6 @@ setup(
         'bunch>=1.0.1',
         'boto>=2.31.1',
         'PyYAML==3.10',
-        'cc_logger>=0.0.4',
     ],
     tests_require=['pytest', 'mock', 'factory_boy'],
     version = '0.1.0',

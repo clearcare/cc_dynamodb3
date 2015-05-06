@@ -9,55 +9,57 @@ from boto.exception import JSONResponseError
 from bunch import Bunch
 import yaml
 
-from .config import Config
-from .logging import create_logger
+from .log import create_logger
 
 
-config = Config()
-logger = create_logger(name='cc_dynamodb', **config['LOGGING'])
+logger = create_logger()
 
 # Cache to avoid parsing YAML file repeatedly.
 _cached_config = None
 
-def set_config(**kwargs):
+def set_config(table_config, namespace=None, aws_access_key_id=None, aws_secret_access_key=None,
+               host=None, port=None, is_secure=None):
     global _cached_config
 
-    config_path = kwargs.pop('table_config', config['CONFIG_PATH'])
-    with open(config_path) as config_file:
+    with open(table_config) as config_file:
         yaml_config = yaml.load(config_file)
 
     _cached_config = Bunch({
         'yaml': yaml_config,
-        'namespace': kwargs.get('namespace')
+        'namespace': namespace
                         or os.environ.get('CC_DYNAMODB_NAMESPACE'),
-        'aws_access_key_id': kwargs.get('aws_access_key_id')
+        'aws_access_key_id': aws_access_key_id
                                 or os.environ.get('CC_DYNAMODB_ACCESS_KEY_ID'),
-        'aws_secret_access_key': kwargs.get('aws_secret_access_key')
+        'aws_secret_access_key': aws_secret_access_key
                                     or os.environ.get('CC_DYNAMODB_SECRET_ACCESS_KEY'),
-        'host': kwargs.get('host')
-                    or os.environ.get('CC_DYNAMODB_HOST'),
-        'port': kwargs.get('port')
-                    or os.environ.get('CC_DYNAMODB_PORT'),
-        'is_secure': kwargs.get('is_secure')
-                         or os.environ.get('CC_DYNAMODB_IS_SECURE'),
+        'host': host or os.environ.get('CC_DYNAMODB_HOST'),
+        'port': port or os.environ.get('CC_DYNAMODB_PORT'),
+        'is_secure': is_secure or os.environ.get('CC_DYNAMODB_IS_SECURE'),
     })
 
 
     if not _cached_config.namespace:
-        raise ConfigurationError('Missing namespace kwarg OR environment variable CC_DYNAMODB_NAMESPACE')
+        msg = 'Missing namespace kwarg OR environment variable CC_DYNAMODB_NAMESPACE'
+        logger.error('ConfigurationError: ' + msg)
+        raise ConfigurationError(msg)
     if not _cached_config.aws_access_key_id:
-        raise ConfigurationError('Missing aws_access_key_id kwarg OR environment variable CC_DYNAMODB_ACCESS_KEY_ID')
+        msg = 'Missing aws_access_key_id kwarg OR environment variable CC_DYNAMODB_ACCESS_KEY_ID'
+        logger.error('ConfigurationError: ' + msg)
+        raise ConfigurationError(msg)
     if not _cached_config.aws_secret_access_key:
-        raise ConfigurationError('Missing aws_secret_access_key kwarg OR environment variable CC_DYNAMODB_SECRET_ACCESS_KEY')
+        msg = 'Missing aws_secret_access_key kwarg OR environment variable CC_DYNAMODB_SECRET_ACCESS_KEY'
+        logger.error('ConfigurationError: ' + msg)
+        raise ConfigurationError(msg)
     if _cached_config.port:
         try:
             _cached_config.port = int(_cached_config.port)
         except ValueError:
-            raise ConfigurationError(
-                'Integer value expected for port '
-                'OR environment variable CC_DYNAMODB_PORT. Got %s' % _cached_config.port)
+            msg = ('Integer value expected for port '
+                   'OR environment variable CC_DYNAMODB_PORT. Got %s' % _cached_config.port)
+            logger.error('ConfigurationError: ' + msg)
+            raise ConfigurationError(msg)
 
-    logger.event('cc_dynamodb.set_config', status='config loaded')
+    logger.info('cc_dynamodb.set_config', status='config loaded')
 
 
 def get_config(**kwargs):
@@ -218,9 +220,13 @@ def _get_table_init_data(table_name, connection, throughput):
 def create_table(table_name, connection=None, throughput=False):
     """Create table. Throws an error if table already exists."""
     try:
-        return table.Table.create(**_get_table_init_data(table_name, connection=connection, throughput=throughput))
+        db_table = table.Table.create(**_get_table_init_data(table_name, connection=connection, throughput=throughput))
+        logger.info('cc_dynamodb.create_table: %s' % table_name, status='created table')
+        return db_table
     except JSONResponseError as e:
         if e.status == 400 and e.error_code == 'ResourceInUseException':
+            logger.warn('Called create_table("%s"), but already exists: %s' %
+                        (table_name, e.body))
             raise TableAlreadyExistsException(body=e.body)
         raise e
 
@@ -238,46 +244,54 @@ def _validate_schema(schema, table_metadata):
                         if item.definition()['AttributeName'] in local_schema_attributes]
 
     if sorted(upstream_schema, key=lambda i: i['AttributeName']) != sorted(local_schema, key=lambda i: i['AttributeName']):
-        raise UpdateTableException('Mismatched schema: %s VS %s' % (upstream_schema, local_schema))
+        msg = 'Mismatched schema: %s VS %s' % (upstream_schema, local_schema)
+        logger.warn(msg)
+        raise UpdateTableException(msg)
 
     if sorted(upstream_attributes, key=lambda i: i['AttributeName']) != sorted(local_attributes, key=lambda i: i['AttributeName']):
-        raise UpdateTableException('Mismatched attributes: %s VS %s' % (upstream_attributes, local_attributes))
+        msg = 'Mismatched attributes: %s VS %s' % (upstream_attributes, local_attributes)
+        logger.warn(msg)
+        raise UpdateTableException(msg)
 
 
 def update_table(table_name, connection=None, throughput=False):
-    """Update existing table."""
+    """Update existing table.
+
+    Handles updating primary index and global secondary indexes.
+    """
     db_table = table.Table(**_get_table_init_data(table_name, connection=connection, throughput=throughput))
     local_global_indexes_by_name = dict((index.name, index) for index in db_table.global_indexes)
     try:
         table_metadata = db_table.describe()
-        _validate_schema(schema=db_table.schema, table_metadata=table_metadata)
-
-        # Update existing primary index throughput
-        db_table.update(throughput=throughput)
-
-        upstream_global_indexes_by_name = dict((index['IndexName'], index)
-                                               for index in table_metadata['Table'].get('GlobalSecondaryIndexes', []))
-        for index_name, index in local_global_indexes_by_name.items():
-            if index_name not in upstream_global_indexes_by_name:
-                db_table.create_global_secondary_index(index)
-                logger.info('Creating GSI %s for %s' % (index_name, table_name))
-            else:
-                # Update throughput
-                # TODO: this could be done in a single call with multiple indexes
-                db_table.update_global_secondary_index(global_indexes={
-                    index_name: index.throughput
-                })
-                logger.info('Updating GSI %s throughput for %s to %s' % (index_name, table_name, index.throughput))
-
-        for index_name in upstream_global_indexes_by_name.keys():
-            if index_name not in local_global_indexes_by_name:
-                db_table.delete_global_secondary_index(index_name)
-                logger.info('Deleting GSI %s for %s' % (index_name, table_name))
-
     except JSONResponseError as e:
         if e.status == 400 and e.error_code == 'ResourceNotFoundException':
             raise UnknownTableException('Unknown table: %s' % table_name)
 
+    _validate_schema(schema=db_table.schema, table_metadata=table_metadata)
+
+    # Update existing primary index throughput
+    db_table.update(throughput=throughput)
+
+    upstream_global_indexes_by_name = dict((index['IndexName'], index)
+                                           for index in table_metadata['Table'].get('GlobalSecondaryIndexes', []))
+    for index_name, index in local_global_indexes_by_name.items():
+        if index_name not in upstream_global_indexes_by_name:
+            db_table.create_global_secondary_index(index)
+            logger.info('Creating GSI %s for %s' % (index_name, table_name))
+        else:
+            # Update throughput
+            # TODO: this could be done in a single call with multiple indexes
+            db_table.update_global_secondary_index(global_indexes={
+                index_name: index.throughput
+            })
+            logger.info('Updating GSI %s throughput for %s to %s' % (index_name, table_name, index.throughput))
+
+    for index_name in upstream_global_indexes_by_name.keys():
+        if index_name not in local_global_indexes_by_name:
+            db_table.delete_global_secondary_index(index_name)
+            logger.info('Deleting GSI %s for %s' % (index_name, table_name))
+
+    logger.info('cc_dynamodb.update_table: %s' % table_name, status='updated table')
     return db_table
 
 
