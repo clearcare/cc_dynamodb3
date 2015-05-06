@@ -5,7 +5,6 @@
 Example usage:
 
 ```python
-import random
 from cc_dynamodb import cc_dynamodb
 
 cc_dynamodb.set_config(
@@ -65,6 +64,9 @@ The following are all at the `cc_dynamodb` top level. With the exception of `get
     |------------------------------------------------------------------------------------------|
     | create_table             | Create table. Throws an error if table already exists.        |
     |------------------------------------------------------------------------------------------|
+    | update_table             | Handles updating primary index and global secondary indexes.  |
+    |                          | Updates throughput and creates/deletes indexes.               |
+    |------------------------------------------------------------------------------------------|
 
 ## Mocks: `cc_dynamodb.mocks`
 
@@ -104,6 +106,18 @@ In your configuration file, e.g. `config.py`:
         aws_secret_access_key='secret',
     )
 
+If you want to use [DynamoDB Local](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html), just pass `host` as a parameter in the connection, e.g.:
+
+    DATABASE = dict(
+        namespace='test_',
+        host='localhost',
+        table_config=DYNAMODB_CONFIG_PATH,
+        aws_access_key_id='test',
+        aws_secret_access_key='secret',
+    )
+
+This uses AWS's provided jar file to run DynamoDB locally. Read more [here](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html).
+
 In your database file, e.g. `db.py`:
 
     import cc_dynamodb
@@ -124,11 +138,5 @@ For a tutorial on boto's `dynamodb2` interface, please see [their tutorial](boto
 
 # TODO:
 
-* Improved logging
-    * Use python's builting logging/logger and set logger name
-    * Drop logstash and cc_logger dependency. Let logging be configured externally.
-    * Use different logging levels where appropriate: error, info, debug
-    * Definitely log table namespace and environment in each log call.
-* Update tables to match indexes/throughput, if they already exist
-* Easier configuration setup (especially for testing)
 * Allow external repos to mock without needingo install `moto`
+* Fix moto's lack of support for GlobalSecondaryIndex (in metadata, see `test_update_table.py`)

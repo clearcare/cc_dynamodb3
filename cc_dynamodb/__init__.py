@@ -258,6 +258,7 @@ def update_table(table_name, connection=None, throughput=False):
     """Update existing table.
 
     Handles updating primary index and global secondary indexes.
+    Updates throughput and creates/deletes indexes.
     """
     db_table = table.Table(**_get_table_init_data(table_name, connection=connection, throughput=throughput))
     local_global_indexes_by_name = dict((index.name, index) for index in db_table.global_indexes)
