@@ -59,7 +59,7 @@ def set_config(table_config, namespace=None, aws_access_key_id=None, aws_secret_
             logger.error('ConfigurationError: ' + msg)
             raise ConfigurationError(msg)
 
-    logger.info('cc_dynamodb.set_config', status='config loaded')
+    logger.info('cc_dynamodb.set_config', extra=dict(status='config loaded'))
 
 
 def get_config(**kwargs):
@@ -221,7 +221,7 @@ def create_table(table_name, connection=None, throughput=False):
     """Create table. Throws an error if table already exists."""
     try:
         db_table = table.Table.create(**_get_table_init_data(table_name, connection=connection, throughput=throughput))
-        logger.info('cc_dynamodb.create_table: %s' % table_name, status='created table')
+        logger.info('cc_dynamodb.create_table: %s' % table_name, extra=dict(status='created table'))
         return db_table
     except JSONResponseError as e:
         if e.status == 400 and e.error_code == 'ResourceInUseException':
@@ -292,7 +292,7 @@ def update_table(table_name, connection=None, throughput=False):
             db_table.delete_global_secondary_index(index_name)
             logger.info('Deleting GSI %s for %s' % (index_name, table_name))
 
-    logger.info('cc_dynamodb.update_table: %s' % table_name, status='updated table')
+    logger.info('cc_dynamodb.update_table: %s' % table_name, extra=dict(status='updated table'))
     return db_table
 
 
