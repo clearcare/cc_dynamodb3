@@ -107,7 +107,9 @@ def _get_table_metadata(table_name):
     try:
         keys_config = config['schemas'][table_name]
     except KeyError:
-        logger.exception('cc_dynamodb.UnknownTable', extra=dict(table_name=table_name, config=config))
+        logger.exception('cc_dynamodb.UnknownTable', extra=dict(table_name=table_name,
+                                                                config=config,
+                                                                DTM_EVENT='cc_dynamodb.UnknownTable'))
         raise UnknownTableException('Unknown table: %s' % table_name)
 
     schema = _build_keys(keys_config)
@@ -135,8 +137,7 @@ def get_reverse_table_name(table_name):
 
 def get_table_index(table_name, index_name):
     """Given a table name and an index name, return the index."""
-    import cc_dynamodb
-    config = cc_dynamodb.get_config()
+    config = get_config()
     all_indexes = (config.yaml.get('indexes', {}).items() +
                    config.yaml.get('global_indexes', {}).items())
     for config_table_name, table_indexes in all_indexes:
@@ -175,7 +176,8 @@ def get_table_columns(table_name):
             (column_name, getattr(types, column_type))
                 for column_name, column_type in config['columns'][table_name].items())
     except KeyError:
-        logger.exception('UnknownTable: %s' % table_name, extra={'config': config})
+        logger.exception('UnknownTable: %s' % table_name, extra=dict(config=config,
+                                                                     DTM_EVENT='cc_dynamodb.UnknownTable'))
         raise UnknownTableException('Unknown table: %s' % table_name)
 
 
@@ -255,10 +257,16 @@ def _validate_schema(schema, table_metadata):
 
 
 def update_table(table_name, connection=None, throughput=False):
-    """Update existing table.
+    """
+    Update existing table.
 
     Handles updating primary index and global secondary indexes.
     Updates throughput and creates/deletes indexes.
+
+    :param table_name: unprefixed table name
+    :param connection: optional dynamodb connection, to avoid creating one
+    :param throughput: a dict, e.g. {'read': 10, 'write': 10}
+    :return: the updated boto Table
     """
     db_table = table.Table(**_get_table_init_data(table_name, connection=connection, throughput=throughput))
     local_global_indexes_by_name = dict((index.name, index) for index in db_table.global_indexes)
