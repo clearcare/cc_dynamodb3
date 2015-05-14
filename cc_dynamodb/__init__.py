@@ -17,7 +17,7 @@ logger = create_logger()
 # Cache to avoid parsing YAML file repeatedly.
 _cached_config = None
 
-def set_config(table_config, namespace=None, aws_access_key_id=None, aws_secret_access_key=None,
+def set_config(table_config, namespace=None, aws_access_key_id=False, aws_secret_access_key=False,
                host=None, port=None, is_secure=None):
     global _cached_config
 
@@ -28,10 +28,10 @@ def set_config(table_config, namespace=None, aws_access_key_id=None, aws_secret_
         'yaml': yaml_config,
         'namespace': namespace
                         or os.environ.get('CC_DYNAMODB_NAMESPACE'),
-        'aws_access_key_id': aws_access_key_id
-                                or os.environ.get('CC_DYNAMODB_ACCESS_KEY_ID'),
-        'aws_secret_access_key': aws_secret_access_key
-                                    or os.environ.get('CC_DYNAMODB_SECRET_ACCESS_KEY'),
+        'aws_access_key_id': aws_access_key_id if aws_access_key_id != False
+                                else os.environ.get('CC_DYNAMODB_ACCESS_KEY_ID', False),
+        'aws_secret_access_key': aws_secret_access_key if aws_secret_access_key != False
+                                    else os.environ.get('CC_DYNAMODB_SECRET_ACCESS_KEY', False),
         'host': host or os.environ.get('CC_DYNAMODB_HOST'),
         'port': port or os.environ.get('CC_DYNAMODB_PORT'),
         'is_secure': is_secure or os.environ.get('CC_DYNAMODB_IS_SECURE'),
@@ -42,11 +42,11 @@ def set_config(table_config, namespace=None, aws_access_key_id=None, aws_secret_
         msg = 'Missing namespace kwarg OR environment variable CC_DYNAMODB_NAMESPACE'
         logger.error('ConfigurationError: ' + msg)
         raise ConfigurationError(msg)
-    if not _cached_config.aws_access_key_id:
+    if _cached_config.aws_access_key_id is False:
         msg = 'Missing aws_access_key_id kwarg OR environment variable CC_DYNAMODB_ACCESS_KEY_ID'
         logger.error('ConfigurationError: ' + msg)
         raise ConfigurationError(msg)
-    if not _cached_config.aws_secret_access_key:
+    if _cached_config.aws_secret_access_key is False:
         msg = 'Missing aws_secret_access_key kwarg OR environment variable CC_DYNAMODB_SECRET_ACCESS_KEY'
         logger.error('ConfigurationError: ' + msg)
         raise ConfigurationError(msg)
