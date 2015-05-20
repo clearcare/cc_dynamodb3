@@ -1,8 +1,18 @@
-# Clearcare DynamoDB common configuration
+# DynamoDB configuration and table namespacing
 
-<!-- [![](https://ci.solanolabs.com:443/Clearcare/cc_dynamodb/badges/170035.png?badge_token=b6bcffb6661e4901c3046ae459eda6a3e0f2fce9)](https://ci.solanolabs.com:443/Clearcare/cc_payment_service/suites/170035) -->
+This repository is a collection of small functions that build on top of [boto's dynamodb2 layer](https://boto.readthedocs.org/en/latest/ref/dynamodb2.html) to encourage better configuration and per-environment tables.
 
-Example usage:
+Here's a bullet-point summary:
+
+* parses table configuration as defined in a YAML file (see [tests/dynamodb.yml](tests/dynamodb.yml))
+* namespaces tables so you can share the same configuration between different environments
+* gives you `Table` objects that have the schema and indexes loaded locally so you avoid extra lookups
+* direct calls to create or update tables by name as the configuration changes
+* optional ability to define non-indexed columns and types of data you expect to store
+
+[![](https://ci.solanolabs.com/Clearcare/cc_dynamodb/badges/branches/master?badge_token=dd4200df12c77f012ea06e70a1c0d0c667b179fe )](https://ci.solanolabs.com/Clearcare/cc_dynamodb/suites/220215)
+
+## Example usage:
 
 ```python
 from cc_dynamodb import cc_dynamodb
@@ -134,7 +144,7 @@ Then you can use the library directly:
 
 ## Dynamodb2 Tutorial
 
-For a tutorial on boto's `dynamodb2` interface, please see [their tutorial](boto.readthedocs.org/en/latest/dynamodb2_tut.html).
+For a tutorial on boto's `dynamodb2` interface, please see [their tutorial](https://boto.readthedocs.org/en/latest/dynamodb2_tut.html).
 
 # TODO:
 
