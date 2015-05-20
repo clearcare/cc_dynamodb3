@@ -87,17 +87,24 @@ def _build_keys(keys_config):
             for key_details in keys_config]
 
 
-def _build_secondary_index(index_details):
+def _build_secondary_index(index_details, is_global):
     index_details = index_details.copy()
     index_type = getattr(fields, index_details.pop('type'))
-    parts = []
+
+    kwargs = dict(
+        parts=[]
+    )
     for key_details in index_details.get('parts', []):
-        parts.append(_build_key(key_details))
-    return index_type(index_details['name'], parts=parts)
+        kwargs['parts'].append(_build_key(key_details))
+
+    if is_global:
+        kwargs['throughput'] = index_details.pop('throughput', None)
+
+    return index_type(index_details['name'], **kwargs)
 
 
-def _build_secondary_indexes(indexes_config):
-    return [_build_secondary_index(index_details)
+def _build_secondary_indexes(indexes_config, is_global):
+    return [_build_secondary_index(index_details, is_global=is_global)
             for index_details in indexes_config]
 
 
@@ -119,8 +126,8 @@ def _get_table_metadata(table_name):
 
     return dict(
         schema=schema,
-        global_indexes=_build_secondary_indexes(global_indexes_config),
-        indexes=_build_secondary_indexes(indexes_config),
+        global_indexes=_build_secondary_indexes(global_indexes_config, is_global=True),
+        indexes=_build_secondary_indexes(indexes_config, is_global=False),
     )
 
 
