@@ -13,8 +13,6 @@ def test_update_table_should_raise_if_table_doesnt_exist(fake_config):
 
 @mock_dynamodb2
 def test_update_table_should_not_update_if_same_throughput(fake_config):
-    # NOTE: this test does too many things. Could be broken up.
-    # ... but it's nice to cover a case that calls out to all index changes.
     table = cc_dynamodb.create_table('change_in_condition')
 
     original_metadata = table.describe()
@@ -25,8 +23,8 @@ def test_update_table_should_not_update_if_same_throughput(fake_config):
              'IndexName': 'SavedInRDB',
              'Projection': {'ProjectionType': 'ALL'},
              'ProvisionedThroughput': {
-                 'WriteCapacityUnits': 5,
-                 'ReadCapacityUnits': 5,
+                 'WriteCapacityUnits': 15,
+                 'ReadCapacityUnits': 15,
              },
              'IndexStatus': 'ACTIVE',
              'KeySchema': [
@@ -126,7 +124,7 @@ def test_update_table_should_create_update_delete_gsi(fake_config):
     mock_delete_gsi.stop()
     mock_config.stop()
 
-    mock_update_gsi.assert_called_with(global_indexes={'SavedInRDB': {'read': 5, 'write': 5}})
+    mock_update_gsi.assert_called_with(global_indexes={'SavedInRDB': {'read': 15, 'write': 15}})
     assert mock_create_gsi.called
     assert mock_create_gsi.call_args[0][0].name == 'RdbID'
     mock_delete_gsi.assert_called_with('SomeUpstreamIndex')
@@ -134,3 +132,56 @@ def test_update_table_should_create_update_delete_gsi(fake_config):
     table = cc_dynamodb.get_table('change_in_condition')
     # Ensure the throughput has been updated
     assert table.throughput == {'read': 5, 'write': 5}
+
+
+@mock_dynamodb2
+def test_update_table_should_update_gsi_if_no_throughput_defined(fake_config):
+    table = cc_dynamodb.create_table('change_in_condition')
+
+    original_metadata = table.describe()
+    # Moto does not support GlobalSecondaryIndexes
+    original_metadata['Table'].update({
+        'GlobalSecondaryIndexes': [
+            {'IndexSizeBytes': 111,
+             'IndexName': 'SavedInRDB',
+             'Projection': {'ProjectionType': 'ALL'},
+             'ProvisionedThroughput': {
+                 'WriteCapacityUnits': 15,
+                 'ReadCapacityUnits': 15,
+             },
+             'IndexStatus': 'ACTIVE',
+             'KeySchema': [
+                 {'KeyType': 'HASH', 'AttributeName': 'saved_in_rdb'},
+                 {'KeyType': 'RANGE', 'AttributeName': 'time'}],
+            'ItemCount': 0}]
+    })
+
+    original_config = cc_dynamodb.get_config()
+    patcher = mock.patch('cc_dynamodb.get_config')
+    mock_config = patcher.start()
+    del original_config.yaml['global_indexes']['change_in_condition'][0]['throughput']
+    mock_config.return_value = original_config
+
+    patcher = mock.patch('cc_dynamodb.table.Table.describe')
+    mock_metadata = patcher.start()
+
+    patcher = mock.patch('cc_dynamodb.table.Table.update_global_secondary_index')
+    mock_update_gsi = patcher.start()
+
+    patcher = mock.patch('cc_dynamodb.table.Table.create_global_secondary_index')
+    mock_create_gsi = patcher.start()
+
+    patcher = mock.patch('cc_dynamodb.table.Table.delete_global_secondary_index')
+    mock_delete_gsi = patcher.start()
+
+    mock_metadata.return_value = original_metadata
+    cc_dynamodb.update_table('change_in_condition')
+
+    mock_metadata.stop()
+    mock_update_gsi.stop()
+    mock_create_gsi.stop()
+    mock_delete_gsi.stop()
+    mock_config.stop()
+
+    assert mock_update_gsi.called
+    mock_update_gsi.assert_called_with(global_indexes={'SavedInRDB': {'read': 5, 'write': 5}})

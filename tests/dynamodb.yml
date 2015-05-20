@@ -24,6 +24,9 @@ global_indexes:
         -
             name: SavedInRDB
             type: GlobalAllIndex
+            throughput:
+                read: 15
+                write: 15
             parts:
                 -
                     type: HashKey
