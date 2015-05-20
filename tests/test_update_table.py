@@ -10,8 +10,9 @@ def test_update_table_should_raise_if_table_doesnt_exist(fake_config):
     with pytest.raises(cc_dynamodb.UnknownTableException):
         cc_dynamodb.update_table('change_in_condition')
 
+
 @mock_dynamodb2
-def test_update_table_should_create_update_delete_gsi(fake_config):
+def test_update_table_should_not_update_if_same_throughput(fake_config):
     # NOTE: this test does too many things. Could be broken up.
     # ... but it's nice to cover a case that calls out to all index changes.
     table = cc_dynamodb.create_table('change_in_condition')
@@ -26,6 +27,53 @@ def test_update_table_should_create_update_delete_gsi(fake_config):
              'ProvisionedThroughput': {
                  'WriteCapacityUnits': 5,
                  'ReadCapacityUnits': 5,
+             },
+             'IndexStatus': 'ACTIVE',
+             'KeySchema': [
+                 {'KeyType': 'HASH', 'AttributeName': 'saved_in_rdb'},
+                 {'KeyType': 'RANGE', 'AttributeName': 'time'}],
+            'ItemCount': 0}]
+    })
+
+    patcher = mock.patch('cc_dynamodb.table.Table.describe')
+    mock_metadata = patcher.start()
+
+    patcher = mock.patch('cc_dynamodb.table.Table.update_global_secondary_index')
+    mock_update_gsi = patcher.start()
+
+    patcher = mock.patch('cc_dynamodb.table.Table.create_global_secondary_index')
+    mock_create_gsi = patcher.start()
+
+    patcher = mock.patch('cc_dynamodb.table.Table.delete_global_secondary_index')
+    mock_delete_gsi = patcher.start()
+
+    mock_metadata.return_value = original_metadata
+    cc_dynamodb.update_table('change_in_condition')
+
+    mock_metadata.stop()
+    mock_update_gsi.stop()
+    mock_create_gsi.stop()
+    mock_delete_gsi.stop()
+
+    assert not mock_update_gsi.called
+
+
+@mock_dynamodb2
+def test_update_table_should_create_update_delete_gsi(fake_config):
+    # NOTE: this test does too many things. Could be broken up.
+    # ... but it's nice to cover a case that calls out to all index changes.
+    table = cc_dynamodb.create_table('change_in_condition')
+
+    original_metadata = table.describe()
+    # Moto does not support GlobalSecondaryIndexes
+    original_metadata['Table'].update({
+        'GlobalSecondaryIndexes': [
+            {'IndexSizeBytes': 111,
+             'IndexName': 'SavedInRDB',
+             'Projection': {'ProjectionType': 'ALL'},
+             'ProvisionedThroughput': {
+                 'WriteCapacityUnits': 10,
+                 'ReadCapacityUnits': 10,
              },
              'IndexStatus': 'ACTIVE',
              'KeySchema': [

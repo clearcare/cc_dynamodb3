@@ -288,6 +288,12 @@ def update_table(table_name, connection=None, throughput=False):
             db_table.create_global_secondary_index(index)
             logger.info('Creating GSI %s for %s' % (index_name, table_name))
         else:
+            throughput = {
+                'write': upstream_global_indexes_by_name[index_name]['ProvisionedThroughput']['WriteCapacityUnits'],
+                'read': upstream_global_indexes_by_name[index_name]['ProvisionedThroughput']['ReadCapacityUnits'],
+            }
+            if throughput == index.throughput:
+                continue
             # Update throughput
             # TODO: this could be done in a single call with multiple indexes
             db_table.update_global_secondary_index(global_indexes={
