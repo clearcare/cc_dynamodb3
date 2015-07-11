@@ -33,6 +33,12 @@ def mock_table_with_data(table_name, data):
 
 
 class TableWithQuery2(table.Table):
+    @staticmethod
+    def _sorting_function(range_keys):
+        def sorter(obj):
+            return tuple([obj.get(range_key) for range_key in range_keys])
+        return sorter
+
     def _query_2_with_index(self, *args, **kwargs):
         table_name = cc_dynamodb.get_reverse_table_name(self.table_name)
         index = cc_dynamodb.get_table_index(table_name, kwargs.pop('index'))
@@ -40,8 +46,11 @@ class TableWithQuery2(table.Table):
         if len(valid_keys) != 1:
             raise ValueError('Need exactly 1 HashKey for table: %s, index: %s' % (table_name, index))
 
-        valid_keys += [key['name'] for key in index['parts'] if key['type'] == 'RangeKey']
+        range_keys = [key['name'] for key in index['parts'] if key['type'] == 'RangeKey']
+        valid_keys += range_keys
 
+        # reverse is also not supported by moto
+        reverse = kwargs.pop('reverse', False)
         key_conditions = self._build_filters(
             kwargs,
             using=QUERY_OPERATORS
@@ -50,6 +59,7 @@ class TableWithQuery2(table.Table):
             raise ValueError('Query by %s, only allowed %s' % (', '.join(key_conditions.keys()),
                                                                ', '.join(valid_keys)))
         table = cc_dynamodb.get_table(table_name)
+        results = []
         for obj in table.scan():
             is_matching = True
             for column, details in key_conditions.items():
@@ -65,7 +75,10 @@ class TableWithQuery2(table.Table):
                 else:
                     raise NotImplementedError('Query of type: %s not supported yet' % details)
             if is_matching:
-                yield obj
+                results.append(obj)
+
+        for obj in sorted(results, key=self._sorting_function(range_keys=range_keys), reverse=reverse):
+            yield obj
 
     def query_2(self, *args, **kwargs):
         """Implement query_2 for custom index.
