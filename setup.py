@@ -9,7 +9,7 @@ setup(
         'PyYAML==3.10',
     ],
     tests_require=['pytest', 'mock', 'factory_boy'],
-    version = '0.3.0',
+    version = '0.4.0',
     description = 'A dynamodb common configuration abstraction',
     author='Paul Craciunoiu',
     author_email='pcraciunoiu@clearcareonline.com',
