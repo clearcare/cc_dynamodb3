@@ -1,5 +1,5 @@
 from decimal import Decimal
-from functools import partial
+import operator
 
 from boto.dynamodb2 import table
 from boto.dynamodb2.types import QUERY_OPERATORS
@@ -39,6 +39,14 @@ class TableWithQuery2(table.Table):
             return tuple([obj.get(range_key) for range_key in range_keys])
         return sorter
 
+    @staticmethod
+    def _compare_func(a, b, comparison_operator, value_type):
+        operation = getattr(operator, comparison_operator.lower())
+        if value_type == 'N':
+            a = Decimal(a)
+            b = Decimal(b)
+        return operation(a, b)
+
     def _query_2_with_index(self, *args, **kwargs):
         table_name = cc_dynamodb.get_reverse_table_name(self.table_name)
         index = cc_dynamodb.get_table_index(table_name, kwargs.pop('index'))
@@ -63,15 +71,12 @@ class TableWithQuery2(table.Table):
         for obj in table.scan():
             is_matching = True
             for column, details in key_conditions.items():
-                if details['ComparisonOperator'] == 'EQ':
+                if hasattr(operator, details['ComparisonOperator'].lower()):
                     value = details['AttributeValueList'][0].values()[0]
                     value_type = details['AttributeValueList'][0].keys()[0]
-                    if value_type == 'N':
-                        if Decimal(obj[column]) != Decimal(value):
-                            is_matching = False
-                    else:
-                        if obj[column] != value:
-                            is_matching = False
+                    if not self._compare_func(obj[column], value,
+                                              details['ComparisonOperator'], value_type):
+                        is_matching = False
                 else:
                     raise NotImplementedError('Query of type: %s not supported yet' % details)
             if is_matching:
