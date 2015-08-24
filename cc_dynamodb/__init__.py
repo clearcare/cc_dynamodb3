@@ -1,5 +1,6 @@
 import copy
 import os
+import time
 
 from boto import dynamodb2
 from boto.dynamodb2 import fields  # AllIndex, GlobalAllIndex, HashKey, RangeKey
@@ -13,6 +14,7 @@ from .log import create_logger
 
 
 logger = create_logger()
+UPDATE_INDEX_RETRIES = 60
 
 # Cache to avoid parsing YAML file repeatedly.
 _cached_config = None
@@ -292,8 +294,18 @@ def update_table(table_name, connection=None, throughput=False):
                                            for index in table_metadata['Table'].get('GlobalSecondaryIndexes', []))
     for index_name, index in local_global_indexes_by_name.items():
         if index_name not in upstream_global_indexes_by_name:
-            db_table.create_global_secondary_index(index)
             logger.info('Creating GSI %s for %s' % (index_name, table_name))
+            for i in range(UPDATE_INDEX_RETRIES + 1):
+                try:
+                    db_table.create_global_secondary_index(index)
+                except JSONResponseError as e:
+                    if 'already exists' in str(e.body):
+                        break
+
+                    if i < UPDATE_INDEX_RETRIES:
+                        time.sleep(1)
+                    else:
+                        raise
         else:
             throughput = {
                 'write': upstream_global_indexes_by_name[index_name]['ProvisionedThroughput']['WriteCapacityUnits'],
@@ -310,8 +322,18 @@ def update_table(table_name, connection=None, throughput=False):
 
     for index_name in upstream_global_indexes_by_name.keys():
         if index_name not in local_global_indexes_by_name:
-            db_table.delete_global_secondary_index(index_name)
             logger.info('Deleting GSI %s for %s' % (index_name, table_name))
+            for i in range(UPDATE_INDEX_RETRIES + 1):
+                try:
+                    db_table.delete_global_secondary_index(index_name)
+                except JSONResponseError as e:
+                    if 'ResourceNotFoundException' in str(e.body):
+                        break
+
+                    if i < UPDATE_INDEX_RETRIES:
+                        time.sleep(1)
+                    else:
+                        raise
 
     logger.info('cc_dynamodb.update_table: %s' % table_name, extra=dict(status='updated table'))
     return db_table
