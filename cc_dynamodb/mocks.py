@@ -96,6 +96,17 @@ class TableWithQuery2(table.Table):
             return self._query_2_with_index(*args, **kwargs)
         return super(TableWithQuery2, self).query_2(*args, **kwargs)
 
+    def query_count(self, *args, **kwargs):
+        """Implement query_2 for custom index.
+
+        moto does not have a working implementation of query_2 if you pass index=
+
+        NOTE/WARNING/CAVEAT: This only works if there is only ONE index for a given name.
+        """
+        if 'index' in kwargs:
+            return len(list(self._query_2_with_index(*args, **kwargs)))
+        return super(TableWithQuery2, self).query_count(*args, **kwargs)
+
 
 class MockQuery2(moto.core.models.MockAWS):
     nested_count = 0

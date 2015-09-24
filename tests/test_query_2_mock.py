@@ -93,3 +93,12 @@ def test_mock_query_2_sorts_reverse(fake_config):
 
     times = [result.get('time') for result in results]
     assert times == [4, 2, 1]
+
+
+@mock_dynamodb2
+def test_mock_query_count_filters_equal(fake_config):
+    mock_data()
+    with mock_query_2():
+        import cc_dynamodb
+        table = cc_dynamodb.get_table('change_in_condition')
+        assert table.query_count(saved_in_rdb__eq=0, index='SavedInRDB') == 3
