@@ -43,8 +43,11 @@ class TableWithQuery2(table.Table):
     def _compare_func(a, b, comparison_operator, value_type):
         operation = getattr(operator, comparison_operator.lower())
         if value_type == 'N':
-            a = Decimal(a or '0')
-            b = Decimal(b or '0')
+            try:
+                a = Decimal(a)
+                b = Decimal(b)
+            except TypeError:
+                pass
         return operation(a, b)
 
     def _query_2_with_index(self, *args, **kwargs):
