@@ -10,19 +10,19 @@ Here's a bullet-point summary:
 * direct calls to create or update tables by name as the configuration changes
 * optional ability to define non-indexed columns and types of data you expect to store
 
-[![](https://ci.solanolabs.com/Clearcare/cc_dynamodb/badges/branches/master?badge_token=dd4200df12c77f012ea06e70a1c0d0c667b179fe )](https://ci.solanolabs.com/Clearcare/cc_dynamodb/suites/220215)
+[![](https://ci.solanolabs.com/Clearcare/cc_dynamodb3/badges/branches/master?badge_token=dd4200df12c77f012ea06e70a1c0d0c667b179fe )](https://ci.solanolabs.com/Clearcare/cc_dynamodb/suites/220215)
 
 ## Example usage:
 
 ```python
-from cc_dynamodb import cc_dynamodb
+from cc_dynamodb3 import cc_dynamodb3
 
-cc_dynamodb.set_config(
+cc_dynamodb3.set_config(
     aws_access_key_id='<KEY>',
     aws_secret_access_key='<SECRET>',
     namespace='dev_')
 
-table = cc_dynamodb.get_table('employment_screening_reports')
+table = cc_dynamodb3.get_table('employment_screening_reports')
     # Returns the boto Table object
     # after figuring out the DynamoDB table name (via namespace)
     # and loading the schema and indexes from the config.
@@ -53,7 +53,7 @@ This file contains the table schema for each table (required), and optional seco
 
 ## Usage
 
-The following are all at the `cc_dynamodb` top level. With the exception of `get_reverse_table_name`, you should always use the unprefixed table name (exactly as from the configuration file).
+The following are all at the `cc_dynamodb3` top level. With the exception of `get_reverse_table_name`, you should always use the unprefixed table name (exactly as from the configuration file).
 
     |------------------------------------------------------------------------------------------|
     | Function name            | Docstring                                                     |
@@ -78,7 +78,7 @@ The following are all at the `cc_dynamodb` top level. With the exception of `get
     |                          | Updates throughput and creates/deletes indexes.               |
     |------------------------------------------------------------------------------------------|
 
-## Mocks: `cc_dynamodb.mocks`
+## Mocks: `cc_dynamodb3.mocks`
 
 This file provides convenient functions for testing with `dynamodb2`.
 
@@ -130,16 +130,16 @@ This uses AWS's provided jar file to run DynamoDB locally. Read more [here](http
 
 In your database file, e.g. `db.py`:
 
-    import cc_dynamodb
+    import cc_dynamodb3
     dynamodb_config = config.DATABASE
-    cc_dynamodb.set_config(**dynamodb_config)
+    cc_dynamodb3.set_config(**dynamodb_config)
 
 Then you can use the library directly:
 
-    from db import cc_dynamodb
+    import cc_dynamodb3
     TABLE_NAME = 'some_table'
 
-    table = cc_dynamodb.get_table(TABLE_NAME)
+    table = cc_dynamodb3.get_table(TABLE_NAME)
     item = table.get_item(some_key='value')
 
 ## Dynamodb2 Tutorial

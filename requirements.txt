@@ -1,4 +1,4 @@
 bunch>=1.0.1
-boto>=2.31.1
+boto3==1.2.2
 PyYAML>=3.10
--e git+https://github.com/spulec/moto.git@0.4.1#egg=moto
+-e git+https://github.com/pcraciunoiu/moto.git@4fa7d6283d818351ed01e36521d6822a086af859#egg=moto

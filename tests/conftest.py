@@ -9,8 +9,8 @@ AWS_DYNAMODB_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'dynamodb.yml
 
 @pytest.fixture
 def fake_config():
-    import cc_dynamodb
-    cc_dynamodb.set_config(
+    import cc_dynamodb3
+    cc_dynamodb3.set_config(
         table_config=AWS_DYNAMODB_CONFIG_PATH,
         aws_access_key_id='<KEY>',
         aws_secret_access_key='<SECRET>',

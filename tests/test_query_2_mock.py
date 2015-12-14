@@ -1,9 +1,7 @@
-from decimal import Decimal
-
+from boto3.dynamodb.conditions import Key
 from moto import mock_dynamodb2
-import pytest
 
-from cc_dynamodb.mocks import mock_table_with_data, mock_query_2
+from cc_dynamodb3.mocks import mock_table_with_data
 
 
 def mock_data():
@@ -33,12 +31,12 @@ def mock_data():
 
 
 @mock_dynamodb2
-def test_mock_query_2_sorts(fake_config):
+def test_query_sorts(fake_config):
     mock_data()
-    with mock_query_2():
-        import cc_dynamodb
-        table = cc_dynamodb.get_table('change_in_condition')
-        results = list(table.query_2(saved_in_rdb__eq=0, index='SavedInRDB'))
+    import cc_dynamodb3
+    results = cc_dynamodb3.query_table('change_in_condition',
+                                       saved_in_rdb__eq=0,
+                                       query_index='SavedInRDB')['Items']
 
     times = [result.get('time') for result in results]
     assert times == [1, 2, 4]
@@ -46,12 +44,14 @@ def test_mock_query_2_sorts(fake_config):
 
 def _test_comparator_helper(**query_kwargs):
     mock_data()
-    with mock_query_2():
-        import cc_dynamodb
-        table = cc_dynamodb.get_table('change_in_condition')
-        results = list(table.query_2(saved_in_rdb__eq=0, index='SavedInRDB', **query_kwargs))
+    import cc_dynamodb3
+    results = cc_dynamodb3.query_table('change_in_condition',
+                                       query_index='SavedInRDB',
+                                       saved_in_rdb=0,
+                                       **query_kwargs)['Items']
 
     return [result.get('time') for result in results]
+
 
 @mock_dynamodb2
 def test_mock_query_2_filters_equal(fake_config):
@@ -86,10 +86,11 @@ def test_mock_query_2_filters_less_than_or_equal(fake_config):
 @mock_dynamodb2
 def test_mock_query_2_sorts_reverse(fake_config):
     mock_data()
-    with mock_query_2():
-        import cc_dynamodb
-        table = cc_dynamodb.get_table('change_in_condition')
-        results = list(table.query_2(saved_in_rdb__eq=0, index='SavedInRDB', reverse=True))
+    import cc_dynamodb3
+    results = cc_dynamodb3.query_table('change_in_condition',
+                                       saved_in_rdb__eq=0,
+                                       query_index='SavedInRDB',
+                                       descending=True)['Items']
 
     times = [result.get('time') for result in results]
     assert times == [4, 2, 1]
@@ -98,7 +99,7 @@ def test_mock_query_2_sorts_reverse(fake_config):
 @mock_dynamodb2
 def test_mock_query_count_filters_equal(fake_config):
     mock_data()
-    with mock_query_2():
-        import cc_dynamodb
-        table = cc_dynamodb.get_table('change_in_condition')
-        assert table.query_count(saved_in_rdb__eq=0, index='SavedInRDB') == 3
+    import cc_dynamodb3
+    assert cc_dynamodb3.query_table('change_in_condition',
+                                    saved_in_rdb__eq=0,
+                                    query_index='SavedInRDB')['Count'] == 3
