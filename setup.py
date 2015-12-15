@@ -5,10 +5,10 @@ setup(
     packages=find_packages(),
     install_requires=[
         'bunch>=1.0.1',
-        'boto>=2.31.1',
+        'boto3>=1.2.2',
         'PyYAML==3.10',
     ],
-    tests_require=['pytest', 'mock', 'factory_boy'],
+    tests_require=['pytest', 'mock', 'factory_boy', 'moto'],
     version = '0.6',
     description = 'A dynamodb common configuration abstraction',
     author='Paul Craciunoiu',
