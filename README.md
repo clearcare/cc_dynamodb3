@@ -1,6 +1,6 @@
 # DynamoDB configuration and table namespacing
 
-This repository is a collection of small functions that build on top of [boto's dynamodb2 layer](https://boto.readthedocs.org/en/latest/ref/dynamodb2.html) to encourage better configuration and per-environment tables.
+This repository is a collection of small functions that build on top of [boto3's dynamodb](https://boto3.readthedocs.org/en/latest/guide/dynamodb.html) to encourage better configuration and per-environment tables.
 
 Here's a bullet-point summary:
 
@@ -26,7 +26,7 @@ table = cc_dynamodb3.get_table('employment_screening_reports')
     # Returns the boto Table object
     # after figuring out the DynamoDB table name (via namespace)
     # and loading the schema and indexes from the config.
-table.scan()  # Table uses boto dynamodb2 interface
+table.scan()  # Table uses boto3 interface
 ```
 
 # API
@@ -44,7 +44,7 @@ Returns the cached config. Calls `set_config` first if no cached config was foun
 Loads up the YAML configuration file and validates dynamodb connection details. The following are required, either set through the environment, or passed in as kwargs (to overwrite):
 
 * `namespace`, determines the table name prefix. Each repository using this library should have a unique namespace.
-* `aws_access_key_id` and `aws_secret_access_key`, the AWS connection credentials for boto's connection. Examples shown in [the tutorial](http://boto.readthedocs.org/en/latest/dynamodb2_tut.html)
+* `aws_access_key_id` and `aws_secret_access_key`, the AWS connection credentials for boto's connection. Examples shown in [the tutorial](https://boto3.readthedocs.org/en/latest/guide/quickstart.html#configuration)
 * `table_config`, a path to the YAML file for table configuration.
 
 ### dynamodb.yml
@@ -68,6 +68,9 @@ The following are all at the `cc_dynamodb3` top level. With the exception of `ge
     |------------------------------------------------------------------------------------------|
     | get_table_columns        | Return known columns for a table and their data type.         |
     |------------------------------------------------------------------------------------------|
+    | query_table              | Provides a nicer interface to query a table than boto3        |
+    |                          | default.                                                      |
+    |------------------------------------------------------------------------------------------|
     | get_table                | Returns a dict with table and preloaded schema, plus columns. |
     |------------------------------------------------------------------------------------------|
     | list_table_names         | List known table names from configuration, without namespace. |
@@ -80,19 +83,12 @@ The following are all at the `cc_dynamodb3` top level. With the exception of `ge
 
 ## Mocks: `cc_dynamodb3.mocks`
 
-This file provides convenient functions for testing with `dynamodb2`.
+This file provides convenient functions for testing with boto3's `dynamodb`.
 
-You can do most of the testing using the [moto](https://github.com/spulec/moto) library directly, but some things are not supported (mainly, indexes), or other things are inconvenient.
+You can do most of the testing using the [moto](https://github.com/spulec/moto) library directly, but some things are not supported (mainly, global secondary indexes and querying via them).
 
-### `mock_query_2`
+Paul's [fork of moto](https://github.com/pcraciunoiu/moto) supports querying, and there is a [Pull Request](https://github.com/spulec/moto/pull/486) open to merge it upstream.
 
-If you plan to test querying by secondary indexes, you want to use this. Can be used as a decorator or a context manager (aka via the `with` statement). Similar to how you would use `moto`'s `mock_dynamodb2`.
-
-Example:
-
-    with mock_query_2():
-        items = table.query_2(some_column__eq='value', index='SomeColumnIndex')
-        
 ### `mock_table_with_data`
 
 Create a table and populate it with array of items from data.
@@ -140,13 +136,9 @@ Then you can use the library directly:
     TABLE_NAME = 'some_table'
 
     table = cc_dynamodb3.get_table(TABLE_NAME)
-    item = table.get_item(some_key='value')
+    item = table.get_item(Key={'some_key': 'value'})
 
-## Dynamodb2 Tutorial
+## Dynamodb Tutorial
 
-For a tutorial on boto's `dynamodb2` interface, please see [their tutorial](https://boto.readthedocs.org/en/latest/dynamodb2_tut.html).
+For more on boto3's `dynamodb` interface, please see [their guide](https://boto3.readthedocs.org/en/latest/guide/dynamodb.html).
 
-# TODO:
-
-* Allow external repos to mock without needingo install `moto`
-* Fix moto's lack of support for GlobalSecondaryIndex (in metadata, see `test_update_table.py`)
