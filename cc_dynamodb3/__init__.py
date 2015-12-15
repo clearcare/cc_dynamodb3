@@ -1,7 +1,6 @@
 import copy
 import operator
 import os
-import time
 
 from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
@@ -16,6 +15,7 @@ logger = create_logger()
 
 # Cache to avoid parsing YAML file repeatedly.
 _cached_config = None
+
 
 def set_config(table_config, namespace=None, aws_access_key_id=False, aws_secret_access_key=False,
                host=None, port=None, is_secure=None):
@@ -75,33 +75,13 @@ class ConfigurationError(Exception):
     pass
 
 
-def _build_secondary_index(index_details, is_global):
-    index_details = index_details.copy()
-    index_type = getattr(fields, index_details.pop('type'))
-
-    kwargs = dict(
-        parts=[]
-    )
-    for key_details in index_details.get('parts', []):
-        kwargs['parts'].append(_build_key(key_details))
-
-    if is_global:
-        kwargs['throughput'] = index_details.pop('throughput', None)
-
-    return index_type(index_details['name'], **kwargs)
-
-
-def _build_secondary_indexes(indexes_config, is_global):
-    return [_build_secondary_index(index_details, is_global=is_global)
-            for index_details in indexes_config]
-
-
 def _build_key_type(key_type):
     if key_type == 'HashKey':
         return 'HASH'
     if key_type == 'RangeKey':
         return 'RANGE'
     raise NotImplementedError('Unknown Key Type: %s' % key_type)
+
 
 def _build_key_schema(keys_config):
     return [
@@ -124,7 +104,7 @@ def _build_attribute_definitions(keys_config):
 def _build_index_type(index_type):
     # Valid values: 'ALL'|'KEYS_ONLY'|'INCLUDE'
     if index_type != 'GlobalAllIndex':
-        raise NotImplementedError
+        raise NotImplementedError('TODO: support KEYS_ONLY and INCLUDE with Projection')
     return 'ALL'
 
 
@@ -138,7 +118,6 @@ def _get_table_metadata(table_name):
                                                                 config=config,
                                                                 DTM_EVENT='cc_dynamodb.UnknownTable'))
         raise UnknownTableException('Unknown table: %s' % table_name)
-
 
     metadata = dict(
         KeySchema=_build_key_schema(keys_config),
@@ -191,12 +170,22 @@ def _get_table_metadata(table_name):
 
 
 def get_table_name(table_name):
-    '''Prefixes the table name for the different environments/settings.'''
+    """
+    Prefixes the table name for the different environments/settings.
+
+    :param table_name: unprefixed table name
+    :return: prefixed table name
+    """
     return get_config().namespace + table_name
 
 
 def get_reverse_table_name(table_name):
-    '''Prefixes the table name for the different environments/settings.'''
+    """
+    Un-prefixes the table name for the different environments/settings.
+
+    :param table_name: prefixed table name
+    :return: unprefixed table name
+    """
     prefix_length = len(get_config().namespace)
     return table_name[prefix_length:]
 
@@ -244,7 +233,6 @@ def get_connection(as_resource=True):
 
 def get_table_columns(table_name):
     """Return known columns for a table and their data type."""
-    # TODO: see if table.describe() can return what dynamodb knows instead.
     config = get_config().yaml
     try:
         return dict(
@@ -257,14 +245,14 @@ def get_table_columns(table_name):
 
 
 def get_table(table_name, connection=None):
-    '''Returns a dict with table and preloaded schema, plus columns.
+    """Returns a dict with table and preloaded schema, plus columns.
 
     WARNING: Does not check the table actually exists. Querying against
              a non-existent table raises boto.exception.JSONResponseError
 
     This function avoids additional lookups when using a table.
     The columns included are only the optional columns you may find in some of the items.
-    '''
+    """
     if table_name not in list_table_names():
         raise UnknownTableException('Unknown table: %s' % table_name)
 
@@ -274,7 +262,17 @@ def get_table(table_name, connection=None):
     )
 
 
-def query_table(table_name, query_index=None, descending=False, limit=None, return_raw=False, **query_keys):
+def query_table(table_name, query_index=None, descending=False, limit=None, **query_keys):
+    """
+    Friendly version to query a table using boto3's interface
+
+    :param table_name: (string) unprefixed table name
+    :param query_index: (string, optional) optionally specify a GSI (Global) or LSI (Local Secondary Index)
+    :param descending: (boolean) sort in descending order (default False
+    :param limit: (integer) limit the number of results directly in the query to dynamodb
+    :param query_keys: query arguments, syntax: attribute__gte=123 (similar to boto2's interface)
+    :return: boto3 query response
+    """
     keys = []
     for key_name, value in query_keys.items():
         key_name_and_operator = key_name.split('__')
@@ -351,8 +349,8 @@ def create_table(table_name, connection=None, throughput=False):
         if (e.response['ResponseMetadata']['HTTPStatusCode'] == 400 and
                 e.response['Error']['Code'] == 'ResourceInUseException'):
             logger.warn('Called create_table("%s"), but already exists: %s' %
-                        (table_name, e.body))
-            raise TableAlreadyExistsException(body=e.body)
+                        (table_name, e.response))
+            raise TableAlreadyExistsException(response=e.response)
         raise e
 
 
@@ -435,8 +433,8 @@ class UnknownTableException(Exception):
 
 
 class TableAlreadyExistsException(Exception):
-    def __init__(self, body):
-        self.body = body
+    def __init__(self, response):
+        self.response = response
 
 
 class UpdateTableException(Exception):
