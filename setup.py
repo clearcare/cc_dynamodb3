@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'cc_dynamodb',
+    name = 'cc_dynamodb3',
     packages=find_packages(),
     install_requires=[
         'bunch>=1.0.1',
