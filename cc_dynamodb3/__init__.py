@@ -423,8 +423,9 @@ def update_table(table_name, connection=None, throughput=False):
                 }
             })
 
-    db_table.update(GlobalSecondaryIndexUpdates=gsi_updates)
-    logger.info('cc_dynamodb.update_table: %s' % table_name, extra=dict(status='updated table'))
+    if gsi_updates:
+        db_table.update(GlobalSecondaryIndexUpdates=gsi_updates)
+        logger.info('cc_dynamodb.update_table: %s' % table_name, extra=dict(status='updated table'))
     return db_table
 
 
