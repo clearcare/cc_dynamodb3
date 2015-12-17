@@ -129,7 +129,7 @@ def _get_table_metadata(table_name):
 
     if indexes_config:
         lsis = []
-        for lsi_config in global_indexes_config:
+        for lsi_config in indexes_config:
             lsis.append({
                 'IndexName': lsi_config['name'],
                 'KeySchema': [
@@ -143,6 +143,11 @@ def _get_table_metadata(table_name):
                     'ProjectionType': _build_index_type(lsi_config['type']),
                 },
             })
+        attributes = []
+        for index in indexes_config:
+            for attribute in index['parts']:
+                attributes.append(attribute)
+        metadata['AttributeDefinitions'] += _build_attribute_definitions(attributes)
         metadata.update(LocalSecondaryIndexes=lsis)
 
     if global_indexes_config:
@@ -164,7 +169,23 @@ def _get_table_metadata(table_name):
                 },
                 'ProvisionedThroughput': provisioned_throughput,
             })
+        attributes = []
+        for index in global_indexes_config:
+            for attribute in index['parts']:
+                attributes.append(attribute)
+        metadata['AttributeDefinitions'] += _build_attribute_definitions(attributes)
         metadata.update(GlobalSecondaryIndexes=gsis)
+
+    # Unique-fy AttributeDefinitions
+    attribute_definitions = dict()
+    for attribute in metadata['AttributeDefinitions']:
+        if (attribute['AttributeName'] in attribute_definitions and
+                attribute['AttributeType'] != attribute_definitions[attribute['AttributeName']]['AttributeType']):
+            raise ValueError('Mismatched attribute type for %s. Found: %s and %s' %
+                             (attribute['AttributeName'], attribute['AttributeType'],
+                              attribute_definitions[attribute['AttributeName']]['AttributeType']))
+        attribute_definitions[attribute['AttributeName']] = attribute
+    metadata['AttributeDefinitions'] = attribute_definitions.values()
 
     return metadata
 
