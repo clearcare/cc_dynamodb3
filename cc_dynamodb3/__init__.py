@@ -103,7 +103,7 @@ def _build_attribute_definitions(keys_config):
 
 def _build_index_type(index_type):
     # Valid values: 'ALL'|'KEYS_ONLY'|'INCLUDE'
-    if index_type != 'GlobalAllIndex':
+    if index_type not in ('AllIndex', 'GlobalAllIndex'):
         raise NotImplementedError('TODO: support KEYS_ONLY and INCLUDE with Projection')
     return 'ALL'
 
