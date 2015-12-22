@@ -6,3 +6,6 @@ def create_logger(namespace=None):
     if namespace:
         name += '.' + namespace
     return logging.getLogger(name)
+
+
+logger = create_logger()
