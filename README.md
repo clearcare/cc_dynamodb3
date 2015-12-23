@@ -1,32 +1,79 @@
 # DynamoDB configuration and table namespacing
 
-This repository is a collection of small functions that build on top of [boto's dynamodb2 layer](https://boto.readthedocs.org/en/latest/ref/dynamodb2.html) to encourage better configuration and per-environment tables.
+This repository is a collection of small functions that build on top of [boto3's dynamodb](https://boto3.readthedocs.org/en/latest/guide/dynamodb.html) to encourage better configuration and per-environment tables.
 
 Here's a bullet-point summary:
 
+* provides a convenient model interface to query, scan, create, update and delete items
+* boto3 integration with conversion between dynamodb and pythonic data
 * parses table configuration as defined in a YAML file (see [tests/dynamodb.yml](tests/dynamodb.yml))
 * namespaces tables so you can share the same configuration between different environments
 * gives you `Table` objects that have the schema and indexes loaded locally so you avoid extra lookups
 * direct calls to create or update tables by name as the configuration changes
 * optional ability to define non-indexed columns and types of data you expect to store
 
-[![](https://ci.solanolabs.com/Clearcare/cc_dynamodb/badges/branches/master?badge_token=dd4200df12c77f012ea06e70a1c0d0c667b179fe )](https://ci.solanolabs.com/Clearcare/cc_dynamodb/suites/220215)
+[![](https://ci.solanolabs.com/Clearcare/cc_dynamodb3/badges/branches/master?badge_token=dd4200df12c77f012ea06e70a1c0d0c667b179fe )](https://ci.solanolabs.com/Clearcare/cc_dynamodb/suites/220215)
 
 ## Example usage:
 
-```python
-from cc_dynamodb import cc_dynamodb
+Models:
 
-cc_dynamodb.set_config(
+```python
+from cc_dynamodb3.models import DynamoDBModel
+
+from schematics import types as fields
+
+class TestModel(DynamoDBModel):
+    TABLE_NAME = 'test'
+
+    agency_subdomain = fields.StringType(required=True)
+    external_id = fields.IntType()
+    name = fields.StringType()
+    is_enabled = fields.BooleanType()
+
+
+cc_dynamodb3.set_config(
+    config_file_path='path/to/yaml/file.yml',
     aws_access_key_id='<KEY>',
     aws_secret_access_key='<SECRET>',
     namespace='dev_')
 
-table = cc_dynamodb.get_table('employment_screening_reports')
+obj = TestModel.create(agency_subdomain='test')  # calls PutItem
+obj.is_enabled = True
+obj.save()                                       # calls UpdateItem
+
+for obj in TestModel.all():
+    print(obj.agency_subdomain)  # prints 'test'
+
+```
+And configuration:
+
+```yaml
+schemas:
+    test:  # note: no namespacing here
+        -
+            type: HashKey
+            name: agency_subdomain
+            data_type: STRING
+
+```
+
+Plain:
+
+```python
+from cc_dynamodb3 import cc_dynamodb3
+
+cc_dynamodb3.set_config(
+    config_file_path='path/to/yaml/file.yml',
+    aws_access_key_id='<KEY>',
+    aws_secret_access_key='<SECRET>',
+    namespace='dev_')
+
+table = cc_dynamodb3.get_table('employment_screening_reports')
     # Returns the boto Table object
     # after figuring out the DynamoDB table name (via namespace)
     # and loading the schema and indexes from the config.
-table.scan()  # Table uses boto dynamodb2 interface
+table.scan()  # Table uses boto3 interface
 ```
 
 # API
@@ -44,7 +91,7 @@ Returns the cached config. Calls `set_config` first if no cached config was foun
 Loads up the YAML configuration file and validates dynamodb connection details. The following are required, either set through the environment, or passed in as kwargs (to overwrite):
 
 * `namespace`, determines the table name prefix. Each repository using this library should have a unique namespace.
-* `aws_access_key_id` and `aws_secret_access_key`, the AWS connection credentials for boto's connection. Examples shown in [the tutorial](http://boto.readthedocs.org/en/latest/dynamodb2_tut.html)
+* `aws_access_key_id` and `aws_secret_access_key`, the AWS connection credentials for boto's connection. Examples shown in [the tutorial](https://boto3.readthedocs.org/en/latest/guide/quickstart.html#configuration)
 * `table_config`, a path to the YAML file for table configuration.
 
 ### dynamodb.yml
@@ -53,7 +100,7 @@ This file contains the table schema for each table (required), and optional seco
 
 ## Usage
 
-The following are all at the `cc_dynamodb` top level. With the exception of `get_reverse_table_name`, you should always use the unprefixed table name (exactly as from the configuration file).
+The following are all at the `cc_dynamodb3` top level. With the exception of `get_reverse_table_name`, you should always use the unprefixed table name (exactly as from the configuration file).
 
     |------------------------------------------------------------------------------------------|
     | Function name            | Docstring                                                     |
@@ -68,6 +115,9 @@ The following are all at the `cc_dynamodb` top level. With the exception of `get
     |------------------------------------------------------------------------------------------|
     | get_table_columns        | Return known columns for a table and their data type.         |
     |------------------------------------------------------------------------------------------|
+    | query_table              | Provides a nicer interface to query a table than boto3        |
+    |                          | default.                                                      |
+    |------------------------------------------------------------------------------------------|
     | get_table                | Returns a dict with table and preloaded schema, plus columns. |
     |------------------------------------------------------------------------------------------|
     | list_table_names         | List known table names from configuration, without namespace. |
@@ -78,21 +128,14 @@ The following are all at the `cc_dynamodb` top level. With the exception of `get
     |                          | Updates throughput and creates/deletes indexes.               |
     |------------------------------------------------------------------------------------------|
 
-## Mocks: `cc_dynamodb.mocks`
+## Mocks: `cc_dynamodb3.mocks`
 
-This file provides convenient functions for testing with `dynamodb2`.
+This file provides convenient functions for testing with boto3's `dynamodb`.
 
-You can do most of the testing using the [moto](https://github.com/spulec/moto) library directly, but some things are not supported (mainly, indexes), or other things are inconvenient.
+You can do most of the testing using the [moto](https://github.com/spulec/moto) library directly, but some things are not supported (mainly, global secondary indexes and querying via them).
 
-### `mock_query_2`
+Paul's [fork of moto](https://github.com/pcraciunoiu/moto) supports querying, and there is a [Pull Request](https://github.com/spulec/moto/pull/486) open to merge it upstream.
 
-If you plan to test querying by secondary indexes, you want to use this. Can be used as a decorator or a context manager (aka via the `with` statement). Similar to how you would use `moto`'s `mock_dynamodb2`.
-
-Example:
-
-    with mock_query_2():
-        items = table.query_2(some_column__eq='value', index='SomeColumnIndex')
-        
 ### `mock_table_with_data`
 
 Create a table and populate it with array of items from data.
@@ -130,23 +173,19 @@ This uses AWS's provided jar file to run DynamoDB locally. Read more [here](http
 
 In your database file, e.g. `db.py`:
 
-    import cc_dynamodb
+    import cc_dynamodb3
     dynamodb_config = config.DATABASE
-    cc_dynamodb.set_config(**dynamodb_config)
+    cc_dynamodb3.set_config(**dynamodb_config)
 
 Then you can use the library directly:
 
-    from db import cc_dynamodb
+    import cc_dynamodb3
     TABLE_NAME = 'some_table'
 
-    table = cc_dynamodb.get_table(TABLE_NAME)
-    item = table.get_item(some_key='value')
+    table = cc_dynamodb3.get_table(TABLE_NAME)
+    item = table.get_item(Key={'some_key': 'value'})
 
-## Dynamodb2 Tutorial
+## Dynamodb Tutorial
 
-For a tutorial on boto's `dynamodb2` interface, please see [their tutorial](https://boto.readthedocs.org/en/latest/dynamodb2_tut.html).
+For more on boto3's `dynamodb` interface, please see [their guide](https://boto3.readthedocs.org/en/latest/guide/dynamodb.html).
 
-# TODO:
-
-* Allow external repos to mock without needingo install `moto`
-* Fix moto's lack of support for GlobalSecondaryIndex (in metadata, see `test_update_table.py`)
