@@ -1,20 +1,29 @@
 from decimal import Decimal
 import os.path
 
+from moto import mock_dynamodb2
 import pytest
 
 
 AWS_DYNAMODB_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'dynamodb.yml')
 
 
-@pytest.fixture
+@pytest.fixture(scope='function', autouse=True)
 def fake_config():
-    import cc_dynamodb3
-    cc_dynamodb3.set_config(
-        table_config=AWS_DYNAMODB_CONFIG_PATH,
+    import cc_dynamodb3.config
+    cc_dynamodb3.config.set_config(
+        config_file_path=AWS_DYNAMODB_CONFIG_PATH,
         aws_access_key_id='<KEY>',
         aws_secret_access_key='<SECRET>',
         namespace='dev_')
+
+
+@pytest.fixture(scope='function', autouse=True)
+def mock_db(request):
+    """We never want to use the real dynamodb."""
+    mock = mock_dynamodb2()
+    mock.start()
+    request.addfinalizer(mock.stop)
 
 
 DYNAMODB_FIXTURES = {

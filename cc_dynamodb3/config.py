@@ -5,18 +5,31 @@ from bunch import Bunch
 import yaml
 
 from .exceptions import ConfigurationError
-from .log import logger
 
 
 # Cache to avoid parsing YAML file repeatedly.
 _cached_config = None
 
 
-def set_config(table_config, namespace=None, aws_access_key_id=False, aws_secret_access_key=False,
-               host=None, port=None, is_secure=None):
+def set_config(config_file_path, namespace=None, aws_access_key_id=False, aws_secret_access_key=False,
+               host=None, port=None, is_secure=None, log_extra_callback=None):
+    """
+    Set configuration. This is needed only once, globally, per-thread.
+
+    :param config_file_path: This is the path to the configuration file.
+    :param namespace: The global table namespace to be used for all tables
+    :param aws_access_key_id: (optional) AWS key. boto can grab it from the instance metadata
+    :param aws_secret_access_key: (optional) AWS secret. boto can grab it from the instance metadata
+    :param host: Host for DynamoDB (useful when running DynamoDB local)
+    :param port: Port for DynamoDB (useful when running DynamoDB local)
+    :param is_secure: boolean, useful when running DynamoDB local
+    :param log_extra_callback: callback function to grab extra data for a log call
+    """
+    from .log import logger  # avoid circular import
+
     global _cached_config
 
-    with open(table_config) as config_file:
+    with open(config_file_path) as config_file:
         yaml_config = yaml.load(config_file)
 
     _cached_config = Bunch({
@@ -30,8 +43,22 @@ def set_config(table_config, namespace=None, aws_access_key_id=False, aws_secret
         'host': host or os.environ.get('CC_DYNAMODB_HOST'),
         'port': port or os.environ.get('CC_DYNAMODB_PORT'),
         'is_secure': is_secure or os.environ.get('CC_DYNAMODB_IS_SECURE'),
+        'log_extra_callback': log_extra_callback,
     })
 
+    _validate_config()
+
+    extra = dict(status='config loaded', namespace=_cached_config.namespace)
+    if log_extra_callback:
+        extra.update(**log_extra_callback())
+
+    logger.info('set_config', extra=extra)
+
+
+def _validate_config():
+    from .log import logger  # avoid circular import
+
+    global _cached_config
 
     if not _cached_config.namespace:
         msg = 'Missing namespace kwarg OR environment variable CC_DYNAMODB_NAMESPACE'
@@ -53,8 +80,6 @@ def set_config(table_config, namespace=None, aws_access_key_id=False, aws_secret
                    'OR environment variable CC_DYNAMODB_PORT. Got %s' % _cached_config.port)
             logger.error('ConfigurationError: ' + msg)
             raise ConfigurationError(msg)
-
-    logger.info('cc_dynamodb.set_config', extra=dict(status='config loaded'))
 
 
 def get_config(**kwargs):

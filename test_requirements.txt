@@ -1,6 +1,7 @@
 -r requirements.txt
-factory-boy==2.5.1
+factory-boy==2.6.0
 mock==1.0.1
 pytest==2.7.0
 pytest-cov==1.8.1
+git+https://github.com/pcraciunoiu/moto.git@0.4.20#egg=moto
 -e .

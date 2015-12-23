@@ -1,5 +1,6 @@
 import operator
 
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import ClientError
 
 from .config import get_config
@@ -9,7 +10,7 @@ from .exceptions import (
     UpdateTableException,
     UnknownTableException,
 )
-from .log import logger
+from .log import log_data
 
 
 def _build_key_type(key_type):
@@ -51,9 +52,10 @@ def _get_table_metadata(table_name):
     try:
         keys_config = config['schemas'][table_name]
     except KeyError:
-        logger.exception('cc_dynamodb.UnknownTable', extra=dict(table_name=table_name,
-                                                                config=config,
-                                                                DTM_EVENT='cc_dynamodb.UnknownTable'))
+        log_data('Unknown Table',
+                 extra=dict(table_name=table_name,
+                            config=config),
+                 logging_level='exception')
         raise UnknownTableException('Unknown table: %s' % table_name)
 
     metadata = dict(
@@ -168,8 +170,10 @@ def get_table_columns(table_name):
             (column_name, column_type)
                 for column_name, column_type in config['columns'][table_name].items())
     except KeyError:
-        logger.exception('UnknownTable: %s' % table_name, extra=dict(config=config,
-                                                                     DTM_EVENT='cc_dynamodb.UnknownTable'))
+        log_data('Unknown Table',
+                 extra=dict(table_name=table_name,
+                            config=config),
+                 logging_level='exception')
         raise UnknownTableException('Unknown table: %s' % table_name)
 
 
@@ -272,13 +276,18 @@ def create_table(table_name, connection=None, throughput=False):
             db_table = dynamodb.Table(init_data['TableName'])
 
         db_table.meta.client.get_waiter('table_exists').wait(TableName=init_data['TableName'])
-        logger.info('cc_dynamodb.create_table: %s' % table_name, extra=dict(status='created table'))
+        log_data('create_table: %s' % table_name,
+                 extra=dict(status='created table',
+                            table_name=table_name),
+                 logging_level='info')
         return db_table
     except ClientError as e:
         if (e.response['ResponseMetadata']['HTTPStatusCode'] == 400 and
                 e.response['Error']['Code'] == 'ResourceInUseException'):
-            logger.warn('Called create_table("%s"), but already exists: %s' %
-                        (table_name, e.response))
+            log_data('Called create_table("%s"), but already exists: %s' %
+                     (table_name, e.response),
+                     extra=dict(table_name=table_name),
+                     logging_level='warning')
             raise TableAlreadyExistsException(response=e.response)
         raise e
 
@@ -287,7 +296,7 @@ def _validate_schema(table_name, upstream_schema, local_schema):
     """Raise error if primary index (schema) is not the same as upstream"""
     if sorted(upstream_schema, key=lambda i: i['AttributeName']) != sorted(local_schema, key=lambda i: i['AttributeName']):
         msg = 'Mismatched schema: %s VS %s' % (upstream_schema, local_schema)
-        logger.warn(msg)
+        log_data(msg, logging_level='warning')
         raise UpdateTableException(msg)
 
 
@@ -327,7 +336,8 @@ def update_table(table_name, connection=None, throughput=False):
 
     for index_name, index in local_global_indexes_by_name.items():
         if index_name not in upstream_global_indexes_by_name:
-            logger.info('Creating GSI %s for %s' % (index_name, table_name))
+            log_data('Creating GSI %s for %s' % (index_name, table_name),
+                     logging_level='info')
             gsi_updates.append({
                 'Create': index,
             })
@@ -341,11 +351,13 @@ def update_table(table_name, connection=None, throughput=False):
                     'ProvisionedThroughput': index['ProvisionedThroughput']
                 },
             })
-            logger.info('Updating GSI %s throughput for %s to %s' % (index_name, table_name, index['ProvisionedThroughput']))
+            log_data('Updating GSI %s throughput for %s to %s' % (index_name, table_name, index['ProvisionedThroughput']),
+                     logging_level='info')
 
     for index_name in upstream_global_indexes_by_name.keys():
         if index_name not in local_global_indexes_by_name:
-            logger.info('Deleting GSI %s for %s' % (index_name, table_name))
+            log_data('Deleting GSI %s for %s' % (index_name, table_name),
+                     logging_level='info')
             gsi_updates.append({
                 'Delete': {
                     'IndexName': index_name,
@@ -354,5 +366,7 @@ def update_table(table_name, connection=None, throughput=False):
 
     if gsi_updates:
         db_table.update(GlobalSecondaryIndexUpdates=gsi_updates)
-        logger.info('cc_dynamodb.update_table: %s' % table_name, extra=dict(status='updated table'))
+        log_data('update_table: %s' % table_name, extra=dict(status='updated table',
+                                                             table_name=table_name),
+                 logging_level='info')
     return db_table

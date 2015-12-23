@@ -18,6 +18,11 @@ schemas:
             type: RangeKey
             name: time
             data_type: NUMBER
+    hash_only:
+        -
+            type: HashKey
+            name: agency_subdomain
+            data_type: STRING
 
 global_indexes:
     change_in_condition:
@@ -36,6 +41,16 @@ global_indexes:
                     type: RangeKey
                     name: time
                     data_type: NUMBER
+    hash_only:
+        -
+            name: HashOnlyExternalId
+            type: GlobalAllIndex
+            parts:
+                -
+                    type: HashKey
+                    name: external_id
+                    data_type: NUMBER
+
 
 indexes:
     change_in_condition:

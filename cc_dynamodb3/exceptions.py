@@ -1,3 +1,6 @@
+from schematics.exceptions import ModelValidationError
+
+
 class UnknownTableException(Exception):
     pass
 
@@ -12,4 +15,20 @@ class UpdateTableException(Exception):
 
 
 class ConfigurationError(Exception):
+    pass
+
+
+class NotFound(Exception):
+    pass
+
+
+class ValidationError(ModelValidationError):
+    pass
+
+
+class MissingTableNameException(Exception):
+    pass
+
+
+class PrimaryKeyUpdateException(Exception):
     pass

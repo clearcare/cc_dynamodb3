@@ -1,4 +1,4 @@
-import cc_dynamodb3
+import cc_dynamodb3.table
 
 
 __all__ = [
@@ -16,7 +16,7 @@ def mock_table_with_data(table_name, data):
 
     len(table.scan())  # Expect 2 results
     '''
-    table = cc_dynamodb3.create_table(table_name)
+    table = cc_dynamodb3.table.create_table(table_name)
 
     for item_data in data:
         table.put_item(Item=item_data)
