@@ -9,8 +9,13 @@ setup(
         'PyYAML==3.10',
         'schematics==1.1.1',
     ],
+<<<<<<< Updated upstream
     tests_require=['pytest', 'mock', 'factory_boy', 'moto'],
     version = '0.6',
+=======
+    tests_require=['pytest', 'mock', 'factory_boy'],
+    version = '0.6.0',
+>>>>>>> Stashed changes
     description = 'A dynamodb common configuration abstraction',
     author='Paul Craciunoiu',
     author_email='pcraciunoiu@clearcareonline.com',
