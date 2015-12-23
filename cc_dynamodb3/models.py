@@ -226,7 +226,7 @@ class DynamoDBModel(Model):
     def get_primary_key(self):
         """Return a dictionary used for cls.get by an item's primary key."""
         return dict(
-            (key['name'], self._value_to_dynamodb(key['name'], getattr(self, key['name'])))
+            (key['name'], self.item[key['name']])
             for key in self.get_schema()
         )
 
@@ -239,12 +239,7 @@ class DynamoDBModel(Model):
     def delete(self):
         if self._is_deleted:
             return False
-        table = self.table()
-        schema = table.key_schema
-        table.delete_item(Key=dict(
-            (key['AttributeName'], self.item[key['AttributeName']])
-            for key in schema
-        ))
+        self.table().delete_item(Key=self.get_primary_key())
         self._is_deleted = True
         return True
 

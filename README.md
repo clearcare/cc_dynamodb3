@@ -4,6 +4,8 @@ This repository is a collection of small functions that build on top of [boto3's
 
 Here's a bullet-point summary:
 
+* provides a convenient model interface to query, scan, create, update and delete items
+* boto3 integration with conversion between dynamodb and pythonic data
 * parses table configuration as defined in a YAML file (see [tests/dynamodb.yml](tests/dynamodb.yml))
 * namespaces tables so you can share the same configuration between different environments
 * gives you `Table` objects that have the schema and indexes loaded locally so you avoid extra lookups
@@ -14,10 +16,55 @@ Here's a bullet-point summary:
 
 ## Example usage:
 
+Models:
+
+```python
+from cc_dynamodb3.models import DynamoDBModel
+
+from schematics import types as fields
+
+class TestModel(DynamoDBModel):
+    TABLE_NAME = 'test'
+
+    agency_subdomain = fields.StringType(required=True)
+    external_id = fields.IntType()
+    name = fields.StringType()
+    is_enabled = fields.BooleanType()
+
+
+cc_dynamodb3.set_config(
+    config_file_path='path/to/yaml/file.yml',
+    aws_access_key_id='<KEY>',
+    aws_secret_access_key='<SECRET>',
+    namespace='dev_')
+
+obj = TestModel.create(agency_subdomain='test')  # calls PutItem
+obj.is_enabled = True
+obj.save()                                       # calls UpdateItem
+
+for obj in TestModel.all():
+    print(obj.agency_subdomain)  # prints 'test'
+
+```
+And configuration:
+
+```yaml
+schemas:
+    test:  # note: no namespacing here
+        -
+            type: HashKey
+            name: agency_subdomain
+            data_type: STRING
+
+```
+
+Plain:
+
 ```python
 from cc_dynamodb3 import cc_dynamodb3
 
 cc_dynamodb3.set_config(
+    config_file_path='path/to/yaml/file.yml',
     aws_access_key_id='<KEY>',
     aws_secret_access_key='<SECRET>',
     namespace='dev_')
