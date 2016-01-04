@@ -89,7 +89,7 @@ class DynamoDBModel(Model):
         """
         table_keys = [key['name'] for key in cls.get_schema()]
 
-        if kwargs.keys() != table_keys:
+        if set(kwargs.keys()) != set(table_keys):
             raise exceptions.ValidationError('Invalid get kwargs: %s, expecting: %s' %
                                              (', '.join(kwargs.keys()), ', '.join(table_keys)))
 
@@ -247,9 +247,15 @@ class DynamoDBModel(Model):
         different_fields = return_different_fields_except(self.item, self._last_saved_item)
         return different_fields.get('new') or dict()
 
+    @classmethod
+    def _get_dynamodb_field_value(cls, field_name, field_value):
+        if field_value is None:
+            return dict(Action='DELETE')
+        return dict(Value=field_value, Action='PUT')
+
     def get_attribute_updates(self):
         return dict(
-            (field_name, dict(Value=field_value, Action='PUT'))
+            (field_name, self._get_dynamodb_field_value(field_name, field_value))
             for field_name, field_value in self.get_unsaved_fields().items()
         )
 
