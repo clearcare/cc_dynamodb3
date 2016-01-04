@@ -89,7 +89,7 @@ class DynamoDBModel(Model):
         """
         table_keys = [key['name'] for key in cls.get_schema()]
 
-        if kwargs.keys() != table_keys:
+        if set(kwargs.keys()) != set(table_keys):
             raise exceptions.ValidationError('Invalid get kwargs: %s, expecting: %s' %
                                              (', '.join(kwargs.keys()), ', '.join(table_keys)))
 
