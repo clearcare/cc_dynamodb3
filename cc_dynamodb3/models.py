@@ -244,8 +244,39 @@ class DynamoDBModel(Model):
         return True
 
     def get_unsaved_fields(self):
-        different_fields = return_different_fields_except(self.item, self._last_saved_item)
+        different_fields = return_different_fields_except(self.item, self._last_saved_item,
+                                                          self.FIELDS_SAFE_TO_OVERWRITE)
         return different_fields.get('new') or dict()
+
+    def log_if_unsafe_save(self, result, is_update):
+        different_fields = return_different_fields_except(self.item, result['Attributes'],
+                                                          self.FIELDS_SAFE_TO_OVERWRITE)
+
+        new_fields = different_fields.get('new') or dict()  # changed locally vs upstream
+        old_fields = different_fields.get('old') or dict()  # changed upstream vs locally
+        unsaved_fields = self.get_unsaved_fields()          # changed locally since last save
+        if is_update and not set(unsaved_fields.keys()).issubset(set(new_fields.keys())):
+            log_data('Unsafe UPDATE: potential overwrite of data, table=%s, is_update=%s' %
+                     (self.table().name, is_update),
+                     extra=dict(
+                         saved_new=dict(self.item.items()),
+                         saved_old=dict(result['Attributes'].items()),
+                         old_fields=old_fields,
+                         new_fields=new_fields,
+                         unsaved_fields=unsaved_fields,
+                     ),
+                     logging_level='error')
+        elif not is_update and (old_fields or new_fields):  # This is overly verbose logging.
+            log_data('Unsafe PUT: potential overwrite of data, table=%s, is_update=%s' %
+                     (self.table().name, is_update),
+                     extra=dict(
+                         saved_new=dict(self.item.items()),
+                         saved_old=dict(result['Attributes'].items()),
+                         old_fields=old_fields,
+                         new_fields=new_fields,
+                         unsaved_fields=unsaved_fields,
+                     ),
+                     logging_level='error')
 
     @classmethod
     def _get_dynamodb_field_value(cls, field_name, field_value):
@@ -288,7 +319,6 @@ class DynamoDBModel(Model):
             AttributeUpdates=attribute_updates,
             ReturnValues='ALL_OLD',
         )
-        self._last_saved_item = copy.deepcopy(self.item)
         self._expect_exists_in_db = True
         return response
 
@@ -314,8 +344,10 @@ class DynamoDBModel(Model):
             if overwrite or has_changed_primary_key or not self._expect_exists_in_db:
                 result = self.table().put_item(Item=self.item,
                                                ReturnValues='ALL_OLD')
+                is_update = False
             else:
                 result = self.update(skip_primary_key_check=has_changed_primary_key)
+                is_update = True
 
         except ClientError as e:
             if getattr(e, 'response', None) and e.response.get('Error', {}).get('Code') == 'ValidationException':
@@ -337,6 +369,9 @@ class DynamoDBModel(Model):
 
             raise
 
+        if result.get('ResponseMetadata', {}):
+            self.metadata = result['ResponseMetadata']
+
         if overwrite:
             log_data('save overwrite=True table=%s' % self.table().name,
                      extra=dict(
@@ -345,22 +380,10 @@ class DynamoDBModel(Model):
                      ),
                      logging_level='warning')
 
-        if result.get('ResponseMetadata', {}):
-            self.metadata = result['ResponseMetadata']
-
-        if not overwrite and 'Attributes' in result and result['Attributes'] != self.item:
-            different_fields = return_different_fields_except(self.item, result['Attributes'],
-                                                              self.FIELDS_SAFE_TO_OVERWRITE)
-            if different_fields and different_fields.get('old'):
-                log_data('Save overwrote data, table=%s, overwrite=%s' %
-                         (self.table().name, overwrite),
-                         extra=dict(
-                             saved_new=dict(self.item.items()),
-                             saved_old=dict(result['Attributes'].items()),
-                             old_fields=different_fields,
-                             new_fields=self.get_unsaved_fields(),
-                         ),
-                         logging_level='error')
+        if not overwrite:
+            # If there are no differences at all, don't bother logging
+            if 'Attributes' in result and result['Attributes'] != self.item:
+                self.log_if_unsafe_save(result, is_update)
         # Save succeeded, update locally
         self._is_deleted = False
         self._last_saved_item = copy.deepcopy(self.item)
