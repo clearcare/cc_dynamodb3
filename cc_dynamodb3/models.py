@@ -252,26 +252,36 @@ class DynamoDBModel(Model):
         different_fields = return_different_fields_except(self.item, result['Attributes'],
                                                           self.FIELDS_SAFE_TO_OVERWRITE)
 
+        saved_new = dict(self.item.items())                 # what we have locally
+        saved_old = dict(result['Attributes'].items())      # what was upstream
         new_fields = different_fields.get('new') or dict()  # changed locally vs upstream
         old_fields = different_fields.get('old') or dict()  # changed upstream vs locally
         unsaved_fields = self.get_unsaved_fields()          # changed locally since last save
-        if is_update and not set(unsaved_fields.keys()).issubset(set(new_fields.keys())):
+        if is_update:
+            if not new_fields and not old_fields:
+                return
+            if set(unsaved_fields.keys()).issubset(set(new_fields.keys())):
+                return
+
             log_data('Unsafe UPDATE: potential overwrite of data, table=%s, is_update=%s' %
                      (self.table().name, is_update),
                      extra=dict(
-                         saved_new=dict(self.item.items()),
-                         saved_old=dict(result['Attributes'].items()),
+                         saved_new=saved_new,
+                         saved_old=saved_old,
                          old_fields=old_fields,
                          new_fields=new_fields,
                          unsaved_fields=unsaved_fields,
                      ),
                      logging_level='error')
-        elif not is_update and (old_fields or new_fields):  # This is overly verbose logging.
+            return
+
+        # else: not is_update
+        if old_fields or new_fields:  # This is overly verbose logging.
             log_data('Unsafe PUT: potential overwrite of data, table=%s, is_update=%s' %
                      (self.table().name, is_update),
                      extra=dict(
-                         saved_new=dict(self.item.items()),
-                         saved_old=dict(result['Attributes'].items()),
+                         saved_new=saved_new,
+                         saved_old=saved_old,
                          old_fields=old_fields,
                          new_fields=new_fields,
                          unsaved_fields=unsaved_fields,
