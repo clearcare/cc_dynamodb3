@@ -195,7 +195,7 @@ def get_table(table_name, connection=None):
     )
 
 
-def query_table(table_name, query_index=None, descending=False, limit=None, **query_keys):
+def query_table(table_name, query_index=None, descending=False, limit=None, count=False, **query_keys):
     """
     Friendly version to query a table using boto3's interface
 
@@ -203,6 +203,7 @@ def query_table(table_name, query_index=None, descending=False, limit=None, **qu
     :param query_index: (string, optional) optionally specify a GSI (Global) or LSI (Local Secondary Index)
     :param descending: (boolean) sort in descending order (default False
     :param limit: (integer) limit the number of results directly in the query to dynamodb
+    :param count: (boolean) return only the count of items
     :param query_keys: query arguments, syntax: attribute__gte=123 (similar to boto2's interface)
     :return: boto3 query response
     """
@@ -230,6 +231,8 @@ def query_table(table_name, query_index=None, descending=False, limit=None, **qu
         query_kwargs['Limit'] = limit
     if query_index:
         query_kwargs['IndexName'] = query_index
+    if count:
+        query_kwargs['Select'] = 'COUNT'
 
     return get_table(table_name).query(**query_kwargs)
 

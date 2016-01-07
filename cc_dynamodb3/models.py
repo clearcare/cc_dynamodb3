@@ -134,6 +134,7 @@ class DynamoDBModel(Model):
                                query_index=query_index,
                                descending=descending,
                                limit=limit,
+                               count=True,
                                **query_keys)
         return response['Count']
 
