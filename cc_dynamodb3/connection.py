@@ -3,8 +3,22 @@ from boto3.session import Session
 from .config import get_config
 
 
-def get_connection(as_resource=True):
+_cached_client = None
+_cached_resource = None
+
+
+def get_connection(as_resource=True, use_cache=True):
     """Returns a DynamoDBConnection even if credentials are invalid."""
+    global _cached_client
+    global _cached_resource
+
+    if use_cache:
+        if as_resource and _cached_resource:
+            return _cached_resource
+
+        if not as_resource and _cached_client:
+            return _cached_client
+
     config = get_config()
 
     session = Session(
@@ -21,12 +35,17 @@ def get_connection(as_resource=True):
         )
 
         if not as_resource:
-            return session.client('dynamodb',
-                                  endpoint_url=endpoint_url)
-        return session.resource('dynamodb',
-                                endpoint_url=endpoint_url)
+            _cached_client = session.client('dynamodb',
+                                            endpoint_url=endpoint_url)
+            return _cached_client
+        _cached_resource = session.resource('dynamodb',
+                                            endpoint_url=endpoint_url,
+                                            verify=False)
+        return _cached_resource
 
     if not as_resource:
-        return session.client('dynamodb')
+        _cached_client = session.client('dynamodb')
+        return _cached_client
 
-    return session.resource('dynamodb')
+    _cached_resource = session.resource('dynamodb')
+    return _cached_resource
