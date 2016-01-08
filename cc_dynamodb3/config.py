@@ -1,14 +1,67 @@
 import copy
+import json
 import os
 
 from bunch import Bunch
+import redis
 import yaml
 
 from .exceptions import ConfigurationError
 
 
+CONFIG_CACHE_KEY = 'cc_dynamodb3_yaml_config_cache'
+
+_config_file_path = None
 # Cache to avoid parsing YAML file repeatedly.
 _cached_config = None
+
+# Redis cache, optional but recommended
+# Example: dict(host='localhost', port=6379, db=3)
+_redis_config = dict()
+
+
+def set_redis_config(redis_config):
+    global _redis_config
+    redis_config.setdefault('cache_seconds', 60)
+    _redis_config = redis_config
+
+
+def get_redis_config():
+    global _redis_config
+    return _redis_config.copy()
+
+
+def get_redis_cache():
+    redis_config = get_redis_config()
+    if not redis_config:
+        return None
+
+    del redis_config['cache_seconds']
+
+    try:
+        return redis.StrictRedis(**redis_config)
+    except Exception:
+        return None
+
+_redis_cache = get_redis_cache()
+
+
+def load_yaml_config():
+    global _config_file_path
+
+    redis_cache = get_redis_cache()
+    if redis_cache:
+        yaml_config = redis_cache.get(CONFIG_CACHE_KEY)
+        if yaml_config:
+            return json.loads(yaml_config)
+
+    with open(_config_file_path) as config_file:
+        yaml_config = yaml.load(config_file)
+        if redis_cache:
+            redis_config = get_redis_config()
+            redis_cache.setex(CONFIG_CACHE_KEY, redis_config['cache_seconds'], json.dumps(yaml_config))
+
+    return yaml_config
 
 
 def set_config(config_file_path, namespace=None, aws_access_key_id=False, aws_secret_access_key=False,
@@ -28,9 +81,10 @@ def set_config(config_file_path, namespace=None, aws_access_key_id=False, aws_se
     from .log import logger  # avoid circular import
 
     global _cached_config
+    global _config_file_path
+    _config_file_path = config_file_path
 
-    with open(config_file_path) as config_file:
-        yaml_config = yaml.load(config_file)
+    yaml_config = load_yaml_config()
 
     _cached_config = Bunch({
         'yaml': yaml_config,
