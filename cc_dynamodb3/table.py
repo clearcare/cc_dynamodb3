@@ -346,7 +346,10 @@ def update_table(table_name, connection=None, throughput=False):
             })
         else:
             upstream_index = upstream_global_indexes_by_name[index_name]
-            if index['ProvisionedThroughput'] == upstream_index['ProvisionedThroughput']:
+            if (index['ProvisionedThroughput'].get('ReadCapacityUnits') ==
+                    upstream_index['ProvisionedThroughput'].get('ReadCapacityUnits')) and \
+               (index['ProvisionedThroughput'].get('WriteCapacityUnits') ==
+                    upstream_index['ProvisionedThroughput'].get('WriteCapacityUnits')):
                 continue
             gsi_updates.append({
                 'Update': {
