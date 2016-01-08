@@ -348,6 +348,7 @@ def update_table(table_name, connection=None, throughput=False):
             upstream_index = upstream_global_indexes_by_name[index_name]
             if index['ProvisionedThroughput'] == upstream_index['ProvisionedThroughput']:
                 continue
+            import pdb; pdb.set_trace()
             gsi_updates.append({
                 'Update': {
                     'IndexName': index_name,
