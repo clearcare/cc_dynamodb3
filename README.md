@@ -12,7 +12,7 @@ Here's a bullet-point summary:
 * direct calls to create or update tables by name as the configuration changes
 * optional ability to define non-indexed columns and types of data you expect to store
 
-[![](https://ci.solanolabs.com/Clearcare/cc_dynamodb3/badges/branches/master?badge_token=dd4200df12c77f012ea06e70a1c0d0c667b179fe )](https://ci.solanolabs.com/Clearcare/cc_dynamodb/suites/220215)
+**TODO: add back to Solano. Old cc_dynamodb was running.**
 
 ## Example usage:
 
@@ -97,6 +97,12 @@ Loads up the YAML configuration file and validates dynamodb connection details. 
 ### dynamodb.yml
 
 This file contains the table schema for each table (required), and optional secondary indexes (`global_indexes`  or indexes (local secondary indexes).
+
+### `set_redis_config(host='localhost', port=6379, db=3)`
+
+The headline is an example call. Redis caching is optional, but may greatly speed up your server performance.
+
+Redis caching is used to avoid parsing the YAML file every time `set_config()` is called.
 
 ## Usage
 
