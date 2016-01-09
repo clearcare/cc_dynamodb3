@@ -69,3 +69,12 @@ def test_has_changed_primary_key_save_logs(log_data_mock):
     assert log_data_mock.called
     called_with = log_data_mock.call_args_list[0]
     assert called_with[0][0] == 'save overwrite=True table=dev_hash_only'
+
+
+def test_to_json():
+    HashOnlyModelFactory.create_table()
+    obj = HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)
+
+    json_data = obj.to_json()
+    assert '"is_enabled": null' in json_data
+    assert ('"updated": "%s"' % obj.updated.isoformat()) in json_data
