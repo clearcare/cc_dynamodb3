@@ -3,5 +3,5 @@ factory-boy==2.6.0
 mock==1.0.1
 pytest==2.7.0
 pytest-cov==1.8.1
-git+https://github.com/spulec/moto.git@96479bf1dc86457b76f48ec1177e4968633c290b9#egg=moto
+git+https://github.com/spulec/moto.git@35478f3a4414c03e68abd179d44f3ba3a80d5767#egg=moto
 -e .
