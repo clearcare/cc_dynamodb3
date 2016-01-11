@@ -111,9 +111,17 @@ class DynamoDBModel(Model):
     @classmethod
     def all(cls):
         response = cls.table().scan()
-        metadata = response.get('ResponseMetadata', {})
-        for row in response['Items']:
-            yield cls.from_row(row, metadata)
+        # DynamoDB scan only returns up to 1MB of data, so we need to keep scanning.
+        while True:
+            metadata = response.get('ResponseMetadata', {})
+            for row in response['Items']:
+                yield cls.from_row(row, metadata)
+            if response.get('LastEvaluatedKey'):
+                response = cls.table().scan(
+                    ExclusiveStartKey=response['LastEvaluatedKey'],
+                )
+            else:
+                break
 
     @classmethod
     def query(cls, query_index=None, descending=False, limit=None, **query_keys):
@@ -123,9 +131,26 @@ class DynamoDBModel(Model):
                                descending=descending,
                                limit=limit,
                                **query_keys)
-        metadata = response.get('ResponseMetadata', {})
-        for row in response['Items']:
-            yield cls.from_row(row, metadata)
+        total_found = 0
+        # DynamoDB scan only returns up to 1MB of data, so we need to keep querying.
+        while True:
+            metadata = response.get('ResponseMetadata', {})
+            for row in response['Items']:
+                yield cls.from_row(row, metadata)
+                total_found += 1
+                if limit and total_found == limit:
+                    break
+            if limit and total_found == limit:
+                break
+            if response.get('LastEvaluatedKey'):
+                response = query_table(cls.TABLE_NAME,
+                                       query_index=query_index,
+                                       descending=descending,
+                                       limit=limit,
+                                       exclusive_start_key=response['LastEvaluatedKey'],
+                                       **query_keys)
+            else:
+                break
 
     @classmethod
     def query_count(cls, query_index=None, descending=False, limit=None, **query_keys):
