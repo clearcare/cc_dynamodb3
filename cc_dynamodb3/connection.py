@@ -36,7 +36,8 @@ def get_connection(as_resource=True, use_cache=True):
 
         if not as_resource:
             _cached_client = session.client('dynamodb',
-                                            endpoint_url=endpoint_url)
+                                            endpoint_url=endpoint_url,
+                                            verify=False)
             return _cached_client
         _cached_resource = session.resource('dynamodb',
                                             endpoint_url=endpoint_url,
@@ -44,8 +45,10 @@ def get_connection(as_resource=True, use_cache=True):
         return _cached_resource
 
     if not as_resource:
-        _cached_client = session.client('dynamodb')
+        _cached_client = session.client('dynamodb',
+                                        verify=False)
         return _cached_client
 
-    _cached_resource = session.resource('dynamodb')
+    _cached_resource = session.resource('dynamodb',
+                                        verify=False)
     return _cached_resource
