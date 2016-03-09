@@ -25,8 +25,9 @@ def test_load_with_redis_does_not_call_yaml_load(get_redis_cache, yaml_load):
     assert config.yaml['foo'] == 'bar'
 
 
+@mock.patch.object(cc_dynamodb3.config, '_redis_config')
 @mock.patch('cc_dynamodb3.config.get_redis_cache')
-def test_load_with_redis_calls_yaml_load_if_cache_miss(get_redis_cache):
+def test_load_with_redis_calls_yaml_load_if_cache_miss(get_redis_cache, _redis_config):
     redis_mock = mock.Mock()
     redis_mock.get = lambda key: None
     get_redis_cache.return_value = redis_mock
