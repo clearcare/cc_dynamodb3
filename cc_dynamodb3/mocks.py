@@ -7,7 +7,7 @@ __all__ = [
 
 
 def mock_table_with_data(table_name, data):
-    '''Create a table and populate it with array of items from data.
+    """Create a table and populate it with array of items from data.
 
     Example:
 
@@ -15,7 +15,7 @@ def mock_table_with_data(table_name, data):
     table = mock_table_with_data('some_table', data)
 
     len(table.scan())  # Expect 2 results
-    '''
+    """
     table = cc_dynamodb3.table.create_table(table_name)
 
     for item_data in data:

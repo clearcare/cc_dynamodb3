@@ -23,7 +23,7 @@ class DynamoDBModel(Model):
 
     @classmethod
     def from_row(cls, row, metadata=None):
-        """Take a row from the DB and return an instaniated object with all of
+        """Take a row from the DB and return an instantiated object with all of
         the attributes populated from the row's data.
 
         :param row: A dictionary representing dynamodb data
@@ -124,12 +124,13 @@ class DynamoDBModel(Model):
                 break
 
     @classmethod
-    def query(cls, query_index=None, descending=False, limit=None, **query_keys):
+    def query(cls, query_index=None, descending=False, limit=None, filter_expression=None, **query_keys):
         query_index = query_index or getattr(cls, 'QUERY_INDEX', None)
         response = query_table(cls.TABLE_NAME,
                                query_index=query_index,
                                descending=descending,
                                limit=limit,
+                               filter_expression=filter_expression,
                                **query_keys)
         total_found = 0
         # DynamoDB scan only returns up to 1MB of data, so we need to keep querying.

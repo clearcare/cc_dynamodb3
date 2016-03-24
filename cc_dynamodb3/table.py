@@ -1,6 +1,6 @@
 import operator
 
-from boto3.dynamodb.conditions import Key
+from boto3.dynamodb.conditions import Key, Attr
 from botocore.exceptions import ClientError
 
 from .config import get_config
@@ -196,19 +196,26 @@ def get_table(table_name, connection=None):
 
 
 def query_table(table_name, query_index=None, descending=False, limit=None, count=False,
-                exclusive_start_key=None, **query_keys):
+                exclusive_start_key=None, filter_expression=None, **query_keys):
     """
     Friendly version to query a table using boto3's interface
 
-    :param table_name: (string) unprefixed table name
+    :param table_name: (string) un-prefixed table name
     :param query_index: (string, optional) optionally specify a GSI (Global) or LSI (Local Secondary Index)
-    :param descending: (boolean) sort in descending order (default False
-    :param limit: (integer) limit the number of results directly in the query to dynamodb
-    :param count: (boolean) return only the count of items
+    :param descending: (boolean, optional) sort in descending order (default: False)
+    :param limit: (integer, optional) limit the number of results directly in the query to dynamodb
+    :param count: (boolean, optional) return only the count of items
     :param exclusive_start_key: (dictionary) resume from the prior query's LastEvaluatedKey
+    :param filter_expression: (dictionary, optional) Dictionary of filter attributes, expressed same as query_keys
     :param query_keys: query arguments, syntax: attribute__gte=123 (similar to boto2's interface)
     :return: boto3 query response
     """
+    # filter_expression is limited in its expressiveness relative to what boto3 is capable.
+    # Only arity 1 conditions are supported, e.g., 'eq', 'gt', 'gte', 'lt', 'lte', 'begins_with', 'contains',
+    # 'is_in', 'ne'. Arity 0 conditions ('not_exists', 'size') and arity 2 conditions ('between') are not supported.
+    # Multiple expressions are all ANDed together. There is no option for ORing or creating more complex
+    # expressions with combinations of AND/OR/NOT.
+
     keys = []
     for key_name, value in query_keys.items():
         key_name_and_operator = key_name.split('__')
@@ -229,6 +236,25 @@ def query_table(table_name, query_index=None, descending=False, limit=None, coun
         KeyConditionExpression=reduce(operator.and_, keys),
         ScanIndexForward=False if descending else True,
     )
+
+    if filter_expression is not None:
+        attrs = []
+        for key_name, value in filter_expression.items():
+            key_name_and_operator = key_name.split('__')
+            if len(key_name_and_operator) == 1:
+                op = 'eq'
+            else:
+                key_name = key_name_and_operator[0]
+                op = key_name_and_operator[1]
+
+            if isinstance(value, bool):  # See above
+                value = int(value)
+
+            attrs.append(
+                getattr(Attr(key_name), op)(value)
+            )
+        query_kwargs['FilterExpression'] = reduce(operator.and_, attrs)
+
     if limit is not None:
         query_kwargs['Limit'] = limit
     if query_index:
