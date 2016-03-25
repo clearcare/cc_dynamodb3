@@ -253,7 +253,8 @@ def query_table(table_name, query_index=None, descending=False, limit=None, coun
             attrs.append(
                 getattr(Attr(key_name), op)(value)
             )
-        query_kwargs['FilterExpression'] = reduce(operator.and_, attrs)
+        if attrs:
+            query_kwargs['FilterExpression'] = reduce(operator.and_, attrs)
 
     if limit is not None:
         query_kwargs['Limit'] = limit
