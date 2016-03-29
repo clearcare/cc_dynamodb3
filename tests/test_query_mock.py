@@ -3,6 +3,9 @@ from cc_dynamodb3.table import (
 )
 from cc_dynamodb3.mocks import mock_table_with_data
 
+# The query tests use the 'time' attribute to uniquely identify test items (rows)
+# If it's necessary to add new data, ensure that the time attribute remains unique.
+
 
 def mock_data():
     data = [
@@ -50,27 +53,27 @@ def _test_comparator_helper(**query_kwargs):
     return [result.get('time') for result in results]
 
 
-def test_mock_query_2_filters_equal():
+def test_mock_query_2_equal():
     times = _test_comparator_helper(time__eq=2)
     assert times == [2]
 
 
-def test_mock_query_2_filters_greater_than():
+def test_mock_query_2_greater_than():
     times = _test_comparator_helper(time__gt=2)
     assert times == [4]
 
 
-def test_mock_query_2_filters_greater_than_or_equal():
+def test_mock_query_2_greater_than_or_equal():
     times = _test_comparator_helper(time__gte=2)
     assert times == [2, 4]
 
 
-def test_mock_query_2_filters_less_than():
+def test_mock_query_2_less_than():
     times = _test_comparator_helper(time__lt=2)
     assert times == [1]
 
 
-def test_mock_query_2_filters_less_than_or_equal():
+def test_mock_query_2_less_than_or_equal():
     times = _test_comparator_helper(time__lte=2)
     assert times == [1, 2]
 
@@ -86,7 +89,7 @@ def test_mock_query_2_sorts_reverse():
     assert times == [4, 2, 1]
 
 
-def test_mock_query_count_filters_equal():
+def test_mock_query_count_equal():
     mock_data()
     assert query_table('change_in_condition',
                        saved_in_rdb__eq=0,
