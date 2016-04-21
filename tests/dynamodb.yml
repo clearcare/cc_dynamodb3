@@ -23,6 +23,11 @@ schemas:
             type: HashKey
             name: agency_subdomain
             data_type: STRING
+    map_field:
+        -
+            type: HashKey
+            name: agency_subdomain
+            data_type: STRING
 
 global_indexes:
     change_in_condition:
