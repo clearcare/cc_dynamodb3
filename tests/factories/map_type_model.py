@@ -1,21 +1,21 @@
 import factory.fuzzy
 from schematics import types as fields
 
-from cc_dynamodb3.fields import DynamoDBMapField
+from cc_dynamodb3.cc_types import MapType
 from cc_dynamodb3.models import DynamoDBModel
 
 from .base import BaseFactory
 
 
-class MapFieldModel(DynamoDBModel):
+class MapTypeModel(DynamoDBModel):
     TABLE_NAME = 'map_field'
 
     agency_subdomain = fields.StringType(required=True)
-    request_data = DynamoDBMapField()
+    request_data = MapType()
 
 
-class MapFieldModelFactory(BaseFactory):
+class MapTypeModelFactory(BaseFactory):
     class Meta:
-        model = MapFieldModel
+        model = MapTypeModel
 
     agency_subdomain = factory.fuzzy.FuzzyText(length=8)
