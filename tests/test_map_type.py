@@ -1,13 +1,13 @@
 import pytest
 
-from cc_dynamodb3.fields import (
+from cc_dynamodb3.cc_types.types import (
     ConversionError,
-    DynamoDBMapField,
+    MapType,
     ValidationError,
     validate_no_empty_string_values,
 )
 
-from .factories.map_field_model import MapFieldModelFactory
+from .factories.map_type_model import MapTypeModelFactory
 
 
 def test_validate_raises_for_empty_strings_1():
@@ -23,26 +23,26 @@ def test_validate_raises_for_empty_strings_2():
 
 
 def test_map_field_model_raises_validation_error_with_empty_top_level_attr():
-    MapFieldModelFactory.create_table()
-    model = MapFieldModelFactory(agency_subdomain='metzler')
+    MapTypeModelFactory.create_table()
+    model = MapTypeModelFactory(agency_subdomain='metzler')
     model.request_data = {'first_name': ''}
     with pytest.raises(ValidationError):
         model.save()
 
 def test_map_field_model_raises_validation_error_with_nested_data():
-    MapFieldModelFactory.create_table()
-    model = MapFieldModelFactory(agency_subdomain='metzler')
+    MapTypeModelFactory.create_table()
+    model = MapTypeModelFactory(agency_subdomain='metzler')
     model.request_data = {'nested': {'data': {'first_name': ''}}}
     with pytest.raises(ValidationError):
         model.save()
 
 
 def test_dynamodb_field_to_native_should_parse_valid_json():
-    field = DynamoDBMapField()
+    field = MapType()
     assert field.to_native('{"field": "value"}') == {'field': 'value'}
 
 
 def test_dynamodb_field_to_native_should_rasie_invalid_json():
-    field = DynamoDBMapField()
+    field = MapType()
     with pytest.raises(ConversionError):
         assert field.to_native('{"field": None}')
