@@ -64,7 +64,7 @@ class DynamoDBModel(Model):
     def _key_value_to_dynamodb(cls, obj, key, value):
         # DynamoDB doesn't treat None as e.g. strings or numbers, so we don't
         # set those values.
-        if getattr(cls, key, None) is not None:
+        if cls._fields.get(key, None) is not None:
             obj[key] = cls._value_to_dynamodb(key, value)
 
     @classmethod

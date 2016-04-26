@@ -49,6 +49,18 @@ def test_update_item_then_get():
     assert reloaded.external_id == 124
 
 
+def test_non_field_set_on_item_then_get():
+    HashOnlyModelFactory.create_table()
+    obj = HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)
+    obj.non_field = 123
+    obj.non_field_class_attr = "Changed string"  # This makes more sense when the attr is a property
+    obj.save()
+
+    reloaded = HashOnlyModel.get(agency_subdomain='metzler')
+    assert not reloaded.item.get('non_field')
+    assert not reloaded.item.get('non_field_class_attr')
+
+
 def test_local_change_then_reload():
     HashOnlyModelFactory.create_table()
     obj = HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)

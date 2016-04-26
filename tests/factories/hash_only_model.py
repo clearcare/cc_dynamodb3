@@ -17,6 +17,8 @@ class HashOnlyModel(DynamoDBModel):
     created = fields.DateTimeType(default=DynamoDBModel.utcnow)
     updated = fields.DateTimeType(default=DynamoDBModel.utcnow)
 
+    non_field_class_attr = "This string should not be saved"
+
 
 class HashOnlyModelFactory(BaseFactory):
     class Meta:
