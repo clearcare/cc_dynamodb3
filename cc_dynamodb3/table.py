@@ -402,7 +402,8 @@ def update_table(table_name, connection=None, throughput=False):
             })
 
     if gsi_updates:
-        db_table.update(GlobalSecondaryIndexUpdates=gsi_updates)
+        db_table.update(AttributeDefinitions=local_metadata['AttributeDefinitions'],
+                        GlobalSecondaryIndexUpdates=gsi_updates)
         log_data('update_table: %s' % table_name, extra=dict(status='updated table',
                                                              table_name=table_name),
                  logging_level='info')
