@@ -6,10 +6,9 @@ Here's a bullet-point summary:
 
 * provides a convenient model interface to query, scan, create, update and delete items
 * boto3 integration with conversion between dynamodb and pythonic data
-* parses table configuration as defined in a YAML file (see [tests/dynamodb.yml](tests/dynamodb.yml))
+* parses table configuration as defined in a terraform file (see [tests/dynamo_tables.tf](tests/dynamo_tables.tf))
 * namespaces tables so you can share the same configuration between different environments
 * gives you `Table` objects that have the schema and indexes loaded locally so you avoid extra lookups
-* direct calls to create or update tables by name as the configuration changes
 * optional ability to define non-indexed columns and types of data you expect to store
 
 **TODO: add back to Solano. Old cc_dynamodb was running.**
@@ -33,10 +32,11 @@ class TestModel(DynamoDBModel):
 
 
 cc_dynamodb3.set_config(
-    config_file_path='path/to/yaml/file.yml',
+    'path/to/file.tf',
     aws_access_key_id='<KEY>',
     aws_secret_access_key='<SECRET>',
-    namespace='dev_')
+    namespace='dev_',
+)
 
 obj = TestModel.create(agency_subdomain='test')  # calls PutItem
 obj.is_enabled = True
@@ -48,15 +48,7 @@ for obj in TestModel.all():
 ```
 And configuration:
 
-```yaml
-schemas:
-    test:  # note: no namespacing here
-        -
-            type: HashKey
-            name: agency_subdomain
-            data_type: STRING
-
-```
+https://www.terraform.io/docs/providers/aws/r/dynamodb_table.html
 
 Plain:
 
@@ -64,10 +56,11 @@ Plain:
 import cc_dynamodb3
 
 cc_dynamodb3.set_config(
-    config_file_path='path/to/yaml/file.yml',
+    'path/to/file.tf',
     aws_access_key_id='<KEY>',
     aws_secret_access_key='<SECRET>',
-    namespace='dev_')
+    namespace='dev_',
+)
 
 table = cc_dynamodb3.table.get_table('employment_screening_reports')
     # Returns the boto Table object
@@ -88,13 +81,13 @@ Returns the cached config. Calls `set_config` first if no cached config was foun
 
 ### `set_config(**kwargs)`
 
-Loads up the YAML configuration file and validates dynamodb connection details. The following are required, either set through the environment, or passed in as kwargs (to overwrite):
+Loads up the terraform configuration file and validates dynamodb connection details. The following are required, either set through the environment, or passed in as kwargs (to overwrite):
 
 * `namespace`, determines the table name prefix. Each repository using this library should have a unique namespace.
 * `aws_access_key_id` and `aws_secret_access_key`, the AWS connection credentials for boto's connection. Examples shown in [the tutorial](https://boto3.readthedocs.org/en/latest/guide/quickstart.html#configuration)
-* `table_config`, a path to the YAML file for table configuration.
+* `table_config`, a path to the terraform file for table configuration.
 
-### dynamodb.yml
+### dynamo_tables.tf
 
 This file contains the table schema for each table (required), and optional secondary indexes (`global_indexes`  or indexes (local secondary indexes).
 
@@ -102,7 +95,7 @@ This file contains the table schema for each table (required), and optional seco
 
 The headline is an example call. Redis caching is optional, but may greatly speed up your server performance.
 
-Redis caching is used to avoid parsing the YAML file every time `set_config()` is called.
+Redis caching is used to avoid parsing the config file every time `set_config()` is called.
 
 ## Usage
 
@@ -119,19 +112,12 @@ The following are all at the `cc_dynamodb3` top level. With the exception of `ge
     |------------------------------------------------------------------------------------------|
     | get_connection           | Returns a DynamoDBConnection even if credentials are invalid. |
     |------------------------------------------------------------------------------------------|
-    | get_table_columns        | Return known columns for a table and their data type.         |
-    |------------------------------------------------------------------------------------------|
     | query_table              | Provides a nicer interface to query a table than boto3        |
     |                          | default.                                                      |
     |------------------------------------------------------------------------------------------|
     | get_table                | Returns a dict with table and preloaded schema, plus columns. |
     |------------------------------------------------------------------------------------------|
     | list_table_names         | List known table names from configuration, without namespace. |
-    |------------------------------------------------------------------------------------------|
-    | create_table             | Create table. Throws an error if table already exists.        |
-    |------------------------------------------------------------------------------------------|
-    | update_table             | Handles updating primary index and global secondary indexes.  |
-    |                          | Updates throughput and creates/deletes indexes.               |
     |------------------------------------------------------------------------------------------|
 
 ## Mocks: `cc_dynamodb3.mocks`
@@ -157,10 +143,10 @@ Example:
 
 In your configuration file, e.g. `config.py`:
 
-    DYNAMODB_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'dynamodb.yml')
+    DYNAMODB_TABLE_TF = os.path.join(os.path.dirname(__file__), 'dynamodb_table.tf')
     DATABASE = dict(
+        DYNAMODB_TABLE_TF,
         namespace='test_',
-        table_config=DYNAMODB_CONFIG_PATH,
         aws_access_key_id='test',
         aws_secret_access_key='secret',
     )
@@ -168,9 +154,9 @@ In your configuration file, e.g. `config.py`:
 If you want to use [DynamoDB Local](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html), just pass `host` as a parameter in the connection, e.g.:
 
     DATABASE = dict(
+        DYNAMODB_TABLE_TF,
         namespace='test_',
         host='localhost',
-        table_config=DYNAMODB_CONFIG_PATH,
         aws_access_key_id='test',
         aws_secret_access_key='secret',
     )
@@ -186,12 +172,16 @@ In your database file, e.g. `db.py`:
 Then you can use the library directly:
 
     import cc_dynamodb3
-    TABLE_NAME = 'some_table'
 
-    table = cc_dynamodb3.get_table(TABLE_NAME)
+    table = cc_dynamodb3.get_table('some_table')
     item = table.get_item(Key={'some_key': 'value'})
 
 ## Dynamodb Tutorial
 
 For more on boto3's `dynamodb` interface, please see [their guide](https://boto3.readthedocs.org/en/latest/guide/dynamodb.html).
 
+## Run the tests
+
+```
+$ py.test tests
+```

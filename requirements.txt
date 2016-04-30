@@ -3,3 +3,4 @@ boto3==1.2.2
 PyYAML>=3.10
 schematics==1.1.1
 redis==2.10.5
+-e git+git@github.com:clearcare/cc_hcl_translator.git@94f633fbb3412aeb7bba5dd18063845f4ed751a5#egg=hcl_translator

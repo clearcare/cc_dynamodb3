@@ -87,7 +87,7 @@ class DynamoDBModel(Model):
         :param kwargs: primary key fields.
         :return: instance of this model
         """
-        table_keys = [key['name'] for key in cls.get_schema()]
+        table_keys = [key['AttributeName'] for key in cls.get_schema()]
 
         if set(kwargs.keys()) != set(table_keys):
             raise exceptions.ValidationError('Invalid get kwargs: %s, expecting: %s' %
@@ -256,13 +256,12 @@ class DynamoDBModel(Model):
 
     @classmethod
     def get_schema(cls):
-        config_yaml = get_config().yaml
-        return config_yaml['schemas'][cls.TABLE_NAME]
+        return get_config().table_config.get_table(cls.TABLE_NAME)['KeySchema']
 
     def get_primary_key(self):
         """Return a dictionary used for cls.get by an item's primary key."""
         return dict(
-            (key['name'], self.item[key['name']])
+            (key['AttributeName'], self.item[key['AttributeName']])
             for key in self.get_schema()
         )
 
@@ -358,7 +357,7 @@ class DynamoDBModel(Model):
 
         if not skip_primary_key_check and self.has_changed_primary_key():
             raise exceptions.PrimaryKeyUpdateException(
-                    'Cannot change primary key, use %s.save(overwrite=True)' % self.TABLE_NAME)
+                'Cannot change primary key, use %s.save(overwrite=True)' % self.TABLE_NAME)
 
         response = self.table().update_item(
             Key=self.get_primary_key(),
@@ -422,8 +421,7 @@ class DynamoDBModel(Model):
             log_data('save overwrite=True table=%s' % self.table().name,
                      extra=dict(
                          db_item=dict(self.item.items()),
-                         put_item_result=result,
-                     ),
+                         put_item_result=result),
                      logging_level='warning')
 
         if not overwrite:
