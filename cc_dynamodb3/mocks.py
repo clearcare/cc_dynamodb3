@@ -1,9 +1,8 @@
-import cc_dynamodb3.table
-
-
-__all__ = [
-    'mock_table_with_data',
-]
+from cc_dynamodb3 import (
+    get_connection,
+    get_table_name,
+    get_table_config,
+)
 
 
 def mock_table_with_data(table_name, data):
@@ -16,9 +15,9 @@ def mock_table_with_data(table_name, data):
 
     len(table.scan())  # Expect 2 results
     """
-    table = cc_dynamodb3.table.create_table(table_name)
-
+    dynamodb = get_connection()
+    dynamodb.create_table(**get_table_config(table_name))
+    table = dynamodb.Table(get_table_name(table_name))
     for item_data in data:
         table.put_item(Item=item_data)
-
     return table
