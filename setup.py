@@ -9,8 +9,11 @@ setup(
         'PyYAML==3.10',
         'schematics==1.1.1',
     ],
+    dependency_links=[
+        'git+https://github.com/clearcare/cc_hcl_translator.git@0.1.0#egg=hcl_translator',
+    ],
     tests_require=['pytest', 'mock', 'factory_boy', 'moto'],
-    version = '0.6.14',
+    version = '1.0.0',
     description = 'A dynamodb common configuration abstraction',
     author='Paul Craciunoiu',
     author_email='pcraciunoiu@clearcareonline.com',
