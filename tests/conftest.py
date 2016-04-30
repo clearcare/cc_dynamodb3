@@ -5,17 +5,18 @@ from moto import mock_dynamodb2
 import pytest
 
 
-AWS_DYNAMODB_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'dynamodb.yml')
+AWS_DYNAMODB_TF = os.path.join(os.path.dirname(__file__), 'dynamo_tables.tf')
 
 
 @pytest.fixture(scope='function', autouse=True)
 def fake_config():
-    import cc_dynamodb3.config
+    import cc_dynamodb3
     cc_dynamodb3.config.set_config(
-        config_file_path=AWS_DYNAMODB_CONFIG_PATH,
+        AWS_DYNAMODB_TF,
         aws_access_key_id='<KEY>',
         aws_secret_access_key='<SECRET>',
-        namespace='dev_')
+        namespace='dev_',
+    )
 
 
 @pytest.fixture(scope='function', autouse=True)
