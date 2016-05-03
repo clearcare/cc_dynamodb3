@@ -124,6 +124,53 @@ class DynamoDBModel(Model):
                 break
 
     @classmethod
+    def paginated_query(cls, query_index=None, descending=False, limit=None, exclusive_start_key=None, filter_expression=None, **query_keys):
+        """
+        Return 'limit' number results along with the Last Evaluated Key.
+        Keep your 'limit' reasonable, this returns a list (not a generator, as query() does).
+        This method is useful for callers that will be handling making successive calls to get additional results,
+        such as in an infinite scrolling page that will make AJAX callbacks to get more results.
+
+        :param query_index: Name of DynamoDB LSI or GSI (pre-namespaced) to use for query key lookup
+        :type query_index: String
+        :param descending: If True, return results in descending range key order. Default False
+        :type descending: Boolean
+        :param limit: Count of Items to return
+        :type limit: int
+        :param exclusive_start_key: LastEvaluatedKey (lek) returned from previous paginated_query()
+        :type exclusive_start_key: dict
+        :param filter_expression:
+        :type filter_expression: dict
+        :param query_keys:
+        :type query_keys: dict
+        :return: list of items fulfilling query, LastEvaluatedKey to use for successive query exclusive_start_key
+        :rtype: tuple of list, dict
+        """
+
+        query_index = query_index or getattr(cls, 'QUERY_INDEX', None)
+        result_list = list()
+        # Prime our loop variables. Query isn't fulfilled until remaining_count == 0 or LastEvaluatedKey says no more
+        # Because we don't have a LEK yet, initialize it to True. It will be set to something or None from the
+        # first query. We special case a passed in limit of zero to ensure that the method doesn't exit with lek
+        # set to True.
+        remaining_count = limit
+        lek = True if limit else None
+        while remaining_count and lek:
+            response = query_table(cls.TABLE_NAME,
+                                   query_index=query_index,
+                                   descending=descending,
+                                   limit=limit,
+                                   exclusive_start_key=exclusive_start_key,
+                                   filter_expression=filter_expression,
+                                   **query_keys)
+            exclusive_start_key = lek = response.get('LastEvaluatedKey')
+            returned_count = response.get('Count')  # This is the count of Items actually returned (post filtering)
+            metadata = response.get('ResponseMetadata', {})
+            result_list += [cls.from_row(row, metadata) for row in response['Items']]
+            remaining_count -= returned_count
+        return result_list, lek
+
+    @classmethod
     def query(cls, query_index=None, descending=False, limit=None, filter_expression=None, **query_keys):
         query_index = query_index or getattr(cls, 'QUERY_INDEX', None)
         response = query_table(cls.TABLE_NAME,
