@@ -14,7 +14,7 @@ from botocore.exceptions import ClientError
 from . import exceptions
 from .config import get_config
 from .log import log_data
-from .table import get_table, query_table
+from .table import get_table, query_table, query_all_in_table, scan_all_in_table
 
 
 class DynamoDBModel(Model):
@@ -110,48 +110,20 @@ class DynamoDBModel(Model):
 
     @classmethod
     def all(cls):
-        response = cls.table().scan()
-        # DynamoDB scan only returns up to 1MB of data, so we need to keep scanning.
-        while True:
-            metadata = response.get('ResponseMetadata', {})
-            for row in response['Items']:
-                yield cls.from_row(row, metadata)
-            if response.get('LastEvaluatedKey'):
-                response = cls.table().scan(
-                    ExclusiveStartKey=response['LastEvaluatedKey'],
-                )
-            else:
-                break
+        for row, metadata in scan_all_in_table(cls.table()):
+            yield cls.from_row(row, metadata)
 
     @classmethod
     def query(cls, query_index=None, descending=False, limit=None, filter_expression=None, **query_keys):
         query_index = query_index or getattr(cls, 'QUERY_INDEX', None)
-        response = query_table(cls.TABLE_NAME,
-                               query_index=query_index,
-                               descending=descending,
-                               limit=limit,
-                               filter_expression=filter_expression,
-                               **query_keys)
-        total_found = 0
-        # DynamoDB scan only returns up to 1MB of data, so we need to keep querying.
-        while True:
-            metadata = response.get('ResponseMetadata', {})
-            for row in response['Items']:
-                yield cls.from_row(row, metadata)
-                total_found += 1
-                if limit and total_found == limit:
-                    break
-            if limit and total_found == limit:
-                break
-            if response.get('LastEvaluatedKey'):
-                response = query_table(cls.TABLE_NAME,
-                                       query_index=query_index,
-                                       descending=descending,
-                                       limit=limit,
-                                       exclusive_start_key=response['LastEvaluatedKey'],
-                                       **query_keys)
-            else:
-                break
+        for row, metadata in query_all_in_table(
+                cls.table(),
+                query_index=query_index,
+                descending=descending,
+                limit=limit,
+                filter_expression=filter_expression,
+                **query_keys):
+            yield cls.from_row(row, metadata)
 
     @classmethod
     def query_count(cls, query_index=None, descending=False, limit=None, **query_keys):

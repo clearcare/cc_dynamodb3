@@ -1,3 +1,4 @@
+from functools import partial
 import operator
 
 from boto3.dynamodb.conditions import Key, Attr
@@ -195,12 +196,15 @@ def get_table(table_name, connection=None):
     )
 
 
-def query_table(table_name, query_index=None, descending=False, limit=None, count=False,
+def _maybe_table_from_name(table_name_or_class):
+    return get_table(table_name_or_class) if isinstance(table_name_or_class, basestring) else table_name_or_class
+
+def query_table(table_name_or_class, query_index=None, descending=False, limit=None, count=False,
                 exclusive_start_key=None, filter_expression=None, **query_keys):
     """
     Friendly version to query a table using boto3's interface
 
-    :param table_name: (string) un-prefixed table name
+    :param table_name_or_class: (string) un-prefixed table name
     :param query_index: (string, optional) optionally specify a GSI (Global) or LSI (Local Secondary Index)
     :param descending: (boolean, optional) sort in descending order (default: False)
     :param limit: (integer, optional) limit the number of results directly in the query to dynamodb
@@ -265,7 +269,64 @@ def query_table(table_name, query_index=None, descending=False, limit=None, coun
     if exclusive_start_key:
         query_kwargs['ExclusiveStartKey'] = exclusive_start_key
 
-    return get_table(table_name).query(**query_kwargs)
+    return _maybe_table_from_name(table_name_or_class).query(**query_kwargs)
+
+
+def _retrieve_all_matching(query_or_scan_func, *args, **kwargs):
+    """Used by scan/query below."""
+    limit = kwargs.pop('limit', None)
+    query_or_scan_kwargs = kwargs.copy()
+    response = query_or_scan_func(*args, **query_or_scan_kwargs)
+    total_found = 0
+
+    # DynamoDB only returns up to 1MB of data per trip, so we need to keep querying or scanning.
+    while True:
+        metadata = response.get('ResponseMetadata', {})
+        for row in response['Items']:
+            yield row, metadata
+            total_found += 1
+            if limit and total_found == limit:
+                break
+        if limit and total_found == limit:
+            break
+        if response.get('LastEvaluatedKey'):
+            query_or_scan_kwargs['exclusive_start_key'] = response['LastEvaluatedKey']
+            response = query_or_scan_func(*args, **query_or_scan_kwargs)
+        else:
+            break
+
+
+def scan_all_in_table(table_name_or_class, *args, **kwargs):
+    """
+    Scan all records in a table. May perform multiple calls to DynamoDB.
+
+    DynamoDB only returns up to 1MB of data per scan, so we need to keep scanning,
+    using LastEvaluatedKey.
+
+    :param table_name_or_class: 'some_table' or get_table('some_table')
+    :param args: see args accepted by boto3 dynamodb scan
+    :param kwargs: see kwargs accepted by boto3 dynamodb scan
+    :return: list of records as tuples (row, metadata)
+    """
+    table = _maybe_table_from_name(table_name_or_class)
+    return _retrieve_all_matching(table.scan, *args, **kwargs)
+
+
+def query_all_in_table(table_name_or_class, *args, **kwargs):
+    """
+    Query all records in a table. May perform multiple calls to DynamoDB.
+
+    DynamoDB only returns up to 1MB of data per query, so we need to keep querying,
+    using LastEvaluatedKey.
+
+    :param table_name_or_class: 'some_table' or get_table('some_table')
+    :param args: see args accepted by query_table
+    :param kwargs: see kwargs accepted by query_table
+    :return: list of records as tuples (row, metadata)
+    """
+    table = _maybe_table_from_name(table_name_or_class)
+    query_partial = partial(query_table, table)
+    return _retrieve_all_matching(query_partial, *args, **kwargs)
 
 
 def list_table_names():
