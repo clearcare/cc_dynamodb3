@@ -1,3 +1,4 @@
+import datetime
 import mock
 
 from factories.hash_only_model import (
@@ -90,3 +91,15 @@ def test_to_json():
     json_data = obj.to_json()
     assert '"is_enabled": null' in json_data
     assert ('"updated": "%s"' % obj.updated.isoformat()) in json_data
+
+
+def test_negative_timestamp():
+    long_ago = datetime.datetime.utcnow()
+    long_ago = long_ago.replace(year=1899)
+    HashOnlyModelFactory.create_table()
+    HashOnlyModelFactory(agency_subdomain='metzler', external_id=123,
+                         created=long_ago)
+
+    obj = HashOnlyModel.all().next()
+    assert obj.created.year == long_ago.year
+    assert obj.item['created'] < 0
