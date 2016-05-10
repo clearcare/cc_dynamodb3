@@ -1,8 +1,8 @@
+import calendar
 import copy
 import datetime
 import decimal
 import json
-import time
 import types
 import uuid
 
@@ -48,7 +48,7 @@ class DynamoDBModel(Model):
                 return 0
 
             value = getattr(cls, key).to_native(value)
-            return decimal.Decimal(int(time.mktime(value.timetuple())))
+            return decimal.Decimal(int(calendar.timegm(value.timetuple())))
 
         if isinstance(getattr(cls, key), fields.UUIDType) and value:
             return getattr(cls, key).to_primitive(value)
