@@ -164,7 +164,7 @@ class DynamoDBModel(Model):
                                    filter_expression=filter_expression,
                                    **query_keys)
             exclusive_start_key = lek = response.get('LastEvaluatedKey')
-            returned_count = response.get('Count')  # This is the count of Items actually returned (post filtering)
+            returned_count = response['Count']  # This is the count of Items actually returned (post filtering)
             metadata = response.get('ResponseMetadata', {})
             result_list += [cls.from_row(row, metadata) for row in response['Items']]
             remaining_count -= returned_count
