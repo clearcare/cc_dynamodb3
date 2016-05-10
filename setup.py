@@ -10,7 +10,7 @@ setup(
         'schematics==1.1.1',
     ],
     tests_require=['pytest', 'mock', 'factory_boy', 'moto'],
-    version = '0.6.10',
+    version = '0.6.12',
     description = 'A dynamodb common configuration abstraction',
     author='Paul Craciunoiu',
     author_email='pcraciunoiu@clearcareonline.com',
