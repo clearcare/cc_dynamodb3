@@ -261,7 +261,7 @@ class DynamoDBModel(Model):
                               (fields.DateTimeType,
                                fields.DateType)):
                     if dynamodb_value:
-                        dict_row[field_name] = datetime.datetime.fromtimestamp(
+                        dict_row[field_name] = datetime.datetime.utcfromtimestamp(
                             float(dynamodb_value)
                         )  # TODO: test for this
                     else:
