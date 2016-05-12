@@ -199,7 +199,7 @@ def get_table(table_name, connection=None):
 def _maybe_table_from_name(table_name_or_class):
     return get_table(table_name_or_class) if isinstance(table_name_or_class, basestring) else table_name_or_class
 
-def query_table(table_name_or_class, query_index=None, descending=False, limit=None, count=False,
+def query_table(table_name_or_class, query_index=None, descending=False, limit=None,
                 exclusive_start_key=None, filter_expression=None, **query_keys):
     """
     Friendly version to query a table using boto3's interface
@@ -208,7 +208,6 @@ def query_table(table_name_or_class, query_index=None, descending=False, limit=N
     :param query_index: (string, optional) optionally specify a GSI (Global) or LSI (Local Secondary Index)
     :param descending: (boolean, optional) sort in descending order (default: False)
     :param limit: (integer, optional) limit the number of results directly in the query to dynamodb
-    :param count: (boolean, optional) return only the count of items
     :param exclusive_start_key: (dictionary) resume from the prior query's LastEvaluatedKey
     :param filter_expression: (dictionary, optional) Dictionary of filter attributes, expressed same as query_keys
     :param query_keys: query arguments, syntax: attribute__gte=123 (similar to boto2's interface)
@@ -264,8 +263,6 @@ def query_table(table_name_or_class, query_index=None, descending=False, limit=N
         query_kwargs['Limit'] = limit
     if query_index:
         query_kwargs['IndexName'] = query_index
-    if count:
-        query_kwargs['Select'] = 'COUNT'
     if exclusive_start_key:
         query_kwargs['ExclusiveStartKey'] = exclusive_start_key
 
