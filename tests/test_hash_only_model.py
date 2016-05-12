@@ -12,8 +12,6 @@ def test_query_primary_index_model_hash_key_should_return():
     HashOnlyModelFactory(agency_subdomain='metzler')
     HashOnlyModelFactory(agency_subdomain='other')
 
-    count = HashOnlyModel.query_count(agency_subdomain='metzler')
-    assert count == 1
     query = list(HashOnlyModel.query(agency_subdomain='metzler'))
     assert query[0].agency_subdomain == 'metzler'
 
@@ -23,9 +21,6 @@ def test_query_secondary_index_model_hash_key_should_return():
     HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)
     HashOnlyModelFactory(agency_subdomain='other', external_id=123)
 
-    count = HashOnlyModel.query_count(external_id=123,
-                                      query_index='HashOnlyExternalId')
-    assert count == 2
     query = list(HashOnlyModel.query(external_id=123,
                                      query_index='HashOnlyExternalId'))
     assert set([o.agency_subdomain for o in query]) == {'metzler', 'other'}

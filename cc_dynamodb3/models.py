@@ -173,17 +173,6 @@ class DynamoDBModel(Model):
             yield cls.from_row(row, metadata)
 
     @classmethod
-    def query_count(cls, query_index=None, descending=False, limit=None, **query_keys):
-        query_index = query_index or getattr(cls, 'QUERY_INDEX', None)
-        response = query_table(cls.TABLE_NAME,
-                               query_index=query_index,
-                               descending=descending,
-                               limit=limit,
-                               count=True,
-                               **query_keys)
-        return response['Count']
-
-    @classmethod
     def create(cls, **kwargs):
         dynamodb_data = cls._initial_data_to_dynamodb(kwargs)
         model = cls(dynamodb_data)
