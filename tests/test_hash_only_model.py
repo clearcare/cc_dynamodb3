@@ -1,6 +1,7 @@
 import datetime
 import mock
 
+from cc_dynamodb3.models import to_json
 from factories.hash_only_model import (
     HashOnlyModel,
     HashOnlyModelFactory,
@@ -79,13 +80,21 @@ def test_has_changed_primary_key_save_logs(log_data_mock):
     assert called_with[0][0] == 'save overwrite=True table=dev_hash_only'
 
 
-def test_to_json():
+def test_model_to_json():
     HashOnlyModelFactory.create_table()
     obj = HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)
 
     json_data = obj.to_json()
     assert '"is_enabled": null' in json_data
     assert ('"updated": "%s"' % obj.updated.isoformat()) in json_data
+
+
+def test_to_json():
+    adatetime = datetime.datetime.utcnow()
+    adate = datetime.date.today()
+    json_data = to_json({'adatetime': adatetime,
+                         'adate': adate})
+    assert '"{0}"'.format(adate.isoformat()) in json_data
 
 
 def test_negative_timestamp():
