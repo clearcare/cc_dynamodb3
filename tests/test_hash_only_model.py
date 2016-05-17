@@ -34,7 +34,7 @@ def test_primary_key_should_return():
     assert obj.get_primary_key() == dict(agency_subdomain='metzler')
 
 
-def test_update_item_then_get():
+def test_update_item_then_get_consistent():
     HashOnlyModelFactory.create_table()
     obj = HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)
     assert obj.external_id == 123
@@ -42,7 +42,7 @@ def test_update_item_then_get():
     obj.save()
     assert obj.external_id == 124
 
-    reloaded = HashOnlyModel.get(agency_subdomain='metzler')
+    reloaded = HashOnlyModel.get(agency_subdomain='metzler', consistent_read=True)
     assert reloaded.external_id == 124
 
 
