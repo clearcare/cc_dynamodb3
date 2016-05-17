@@ -80,12 +80,12 @@ class DynamoDBModel(Model):
         return get_table(cls.TABLE_NAME)
 
     @classmethod
-    def get(cls, **kwargs):
+    def get(cls, consistent_read=False, **kwargs):
         """
         Retrieve a DynamoDB item via GetItem.
 
         :param kwargs: primary key fields.
-        :return:
+        :return: instance of this model
         """
         table_keys = [key['name'] for key in cls.get_schema()]
 
@@ -93,7 +93,8 @@ class DynamoDBModel(Model):
             raise exceptions.ValidationError('Invalid get kwargs: %s, expecting: %s' %
                                              (', '.join(kwargs.keys()), ', '.join(table_keys)))
 
-        response = cls.table().get_item(Key=kwargs)
+        response = cls.table().get_item(Key=kwargs,
+                                        ConsistentRead=consistent_read)
         if not response or 'Item' not in response:
             raise exceptions.NotFound('Item not found with kwargs: %s' % kwargs)
 
