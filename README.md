@@ -61,7 +61,7 @@ schemas:
 Plain:
 
 ```python
-from cc_dynamodb3 import cc_dynamodb3
+import cc_dynamodb3
 
 cc_dynamodb3.set_config(
     config_file_path='path/to/yaml/file.yml',
@@ -69,7 +69,7 @@ cc_dynamodb3.set_config(
     aws_secret_access_key='<SECRET>',
     namespace='dev_')
 
-table = cc_dynamodb3.get_table('employment_screening_reports')
+table = cc_dynamodb3.table.get_table('employment_screening_reports')
     # Returns the boto Table object
     # after figuring out the DynamoDB table name (via namespace)
     # and loading the schema and indexes from the config.
