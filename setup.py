@@ -1,20 +1,19 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'cc_dynamodb3',
+    name='cc_dynamodb3',
     packages=find_packages(),
     install_requires=[
         'bunch>=1.0.1',
         'boto3>=1.2.2',
-        'PyYAML==3.10',
         'schematics==1.1.1',
     ],
     dependency_links=[
         'git+https://github.com/clearcare/cc_hcl_translator.git@0.1.0#egg=hcl_translator',
     ],
     tests_require=['pytest', 'mock', 'factory_boy', 'moto'],
-    version = '1.0.0',
-    description = 'A dynamodb common configuration abstraction',
+    version='1.0.2',
+    description='A dynamodb common configuration abstraction',
     author='Paul Craciunoiu',
     author_email='pcraciunoiu@clearcareonline.com',
     url='https://github.com/clearcare/cc_dynamodb3',
