@@ -194,5 +194,3 @@ Then you can use the library directly:
 ## Dynamodb Tutorial
 
 For more on boto3's `dynamodb` interface, please see [their guide](https://boto3.readthedocs.org/en/latest/guide/dynamodb.html).
-
-  
