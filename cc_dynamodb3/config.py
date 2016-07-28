@@ -1,23 +1,29 @@
-import copy
-import json
 import os
+import redis
 
 from bunch import Bunch
-import redis
-import yaml
+from hcl_translator import dynamodb3_translator
 
 from .exceptions import ConfigurationError
 
 
-CONFIG_CACHE_KEY = 'cc_dynamodb3_yaml_config_cache'
+CONFIG_CACHE_KEY = 'cc_dynamodb3_config_cache'
 
-_config_file_path = None
-# Cache to avoid parsing YAML file repeatedly.
 _cached_config = None
 
 # Redis cache, optional but recommended
 # Example: dict(host='localhost', port=6379, db=3)
 _redis_config = dict()
+
+
+_dynamodb_tables = None
+
+
+def _get_tables(config):
+    global _dynamodb_tables
+    if _dynamodb_tables is None:
+        _dynamodb_tables = dynamodb3_translator(config)
+    return _dynamodb_tables
 
 
 def set_redis_config(redis_config):
@@ -46,30 +52,12 @@ def get_redis_cache():
 _redis_cache = get_redis_cache()
 
 
-def load_yaml_config():
-    global _config_file_path
-
-    redis_cache = get_redis_cache()
-    if redis_cache:
-        yaml_config = redis_cache.get(CONFIG_CACHE_KEY)
-        if yaml_config:
-            return json.loads(yaml_config)
-
-    with open(_config_file_path) as config_file:
-        yaml_config = yaml.load(config_file)
-        if redis_cache:
-            redis_config = get_redis_config()
-            redis_cache.setex(CONFIG_CACHE_KEY, redis_config['cache_seconds'], json.dumps(yaml_config))
-
-    return yaml_config
-
-
-def set_config(config_file_path, namespace=None, aws_access_key_id=False, aws_secret_access_key=False,
+def set_config(dynamodb_tf, namespace=None, aws_access_key_id=False, aws_secret_access_key=False,
                host=None, port=None, is_secure=None, log_extra_callback=None):
     """
     Set configuration. This is needed only once, globally, per-thread.
 
-    :param config_file_path: This is the path to the configuration file.
+    :param This is the path to the terraform configuration file.
     :param namespace: The global table namespace to be used for all tables
     :param aws_access_key_id: (optional) AWS key. boto can grab it from the instance metadata
     :param aws_secret_access_key: (optional) AWS secret. boto can grab it from the instance metadata
@@ -81,18 +69,14 @@ def set_config(config_file_path, namespace=None, aws_access_key_id=False, aws_se
     from .log import logger  # avoid circular import
 
     global _cached_config
-    global _config_file_path
-    _config_file_path = config_file_path
-
-    yaml_config = load_yaml_config()
+    global _dynamodb_table_info
 
     _cached_config = Bunch({
-        'yaml': yaml_config,
-        'namespace': namespace
-                        or os.environ.get('CC_DYNAMODB_NAMESPACE'),
-        'aws_access_key_id': aws_access_key_id if aws_access_key_id != False
+        'table_config': _get_tables(dynamodb_tf),
+        'namespace': namespace or os.environ.get('CC_DYNAMODB_NAMESPACE'),
+        'aws_access_key_id': aws_access_key_id if aws_access_key_id is not False
                                 else os.environ.get('CC_DYNAMODB_ACCESS_KEY_ID', False),
-        'aws_secret_access_key': aws_secret_access_key if aws_secret_access_key != False
+        'aws_secret_access_key': aws_secret_access_key if aws_secret_access_key is not False
                                     else os.environ.get('CC_DYNAMODB_SECRET_ACCESS_KEY', False),
         'host': host or os.environ.get('CC_DYNAMODB_HOST'),
         'port': port or os.environ.get('CC_DYNAMODB_PORT'),
@@ -138,16 +122,8 @@ def _validate_config():
             raise ConfigurationError(msg)
 
 
-def get_config(**kwargs):
+def get_config():
     global _cached_config
-
-    if not _cached_config:
-        # TODO: get_config() should never set_config()
-        # Since it's checking _cached_config, and won't set_config() if _cached_config is set,
-        # it really doesn't make sense that this ever get called if the config is already set.
-        # And get_config() with zero arguments when config is not set will cause TypeError.
-        # Makes far more sense for this to just always *only* get, and require set_config()
-        # be invoked before calling get_config().
-        set_config(**kwargs)
-
-    return Bunch(copy.deepcopy(_cached_config.toDict()))
+    if _cached_config is None:
+        raise ConfigurationError('set_config has to be called before get_config')
+    return _cached_config

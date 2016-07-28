@@ -1,15 +1,14 @@
-from cc_dynamodb3.table import create_table
-
 import factory
+
+import cc_dynamodb3
 
 
 class BaseFactory(factory.Factory):
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        inst = model_class.create(**kwargs)
-        return inst
+        return model_class.create(**kwargs)
 
     @classmethod
     def create_table(cls):
-        return create_table(cls._meta.model.TABLE_NAME)
-
+        dynamodb = cc_dynamodb3.connection.get_connection()
+        return dynamodb.create_table(**cc_dynamodb3.table.get_table_config(cls._meta.model.TABLE_NAME))
