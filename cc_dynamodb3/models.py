@@ -110,9 +110,14 @@ class DynamoDBModel(Model):
         return dynamodb_data
 
     @classmethod
-    def all(cls):
-        for row, metadata in scan_all_in_table(cls.table()):
-            yield cls.from_row(row, metadata)
+    def all(cls, limit=None, paginate=False, exclusive_start_key=None):
+        if paginate:
+            for row, metadata, last_evaluated_key in scan_all_in_table(cls.table(), limit=limit, paginate=paginate,
+                                                                       exclusive_start_key=exclusive_start_key):
+                yield cls.from_row(row, metadata), last_evaluated_key
+        else:
+            for row, metadata in scan_all_in_table(cls.table()):
+                yield cls.from_row(row, metadata)
 
     @classmethod
     def paginated_query(cls, query_index=None, descending=False, limit=None, exclusive_start_key=None, filter_expression=None, **query_keys):
