@@ -107,3 +107,16 @@ def test_negative_timestamp():
     obj = HashOnlyModel.all().next()
     assert obj.created.year == long_ago.year
     assert obj.item['created'] < 0
+
+
+def test_all_paginate():
+    HashOnlyModelFactory.create_table()
+    HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)
+    HashOnlyModelFactory(agency_subdomain='metzler2', external_id=124)
+
+    obj, exclusive_start_key = HashOnlyModel.all(limit=1, paginate=True).next()
+    obj2, _ = HashOnlyModel.all(limit=1, paginate=True,
+                                exclusive_start_key=exclusive_start_key).next()
+
+    assert obj.external_id != obj2.external_id
+    assert {obj.external_id, obj2.external_id} == {123, 124}

@@ -278,7 +278,11 @@ def scan_table(table_name_or_class, exclusive_start_key=None, **scan_kwargs):
 def _retrieve_all_matching(query_or_scan_func, *args, **kwargs):
     """Used by scan/query below."""
     limit = kwargs.pop('limit', None)
+    paginate = kwargs.pop('paginate', False)
     query_or_scan_kwargs = kwargs.copy()
+    if limit:
+        query_or_scan_kwargs['Limit'] = limit
+
     response = query_or_scan_func(*args, **query_or_scan_kwargs)
     total_found = 0
 
@@ -286,7 +290,10 @@ def _retrieve_all_matching(query_or_scan_func, *args, **kwargs):
     while True:
         metadata = response.get('ResponseMetadata', {})
         for row in response['Items']:
-            yield row, metadata
+            if paginate:
+                yield row, metadata, response.get('LastEvaluatedKey')
+            else:
+                yield row, metadata
             total_found += 1
             if limit and total_found == limit:
                 break
