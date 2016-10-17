@@ -269,9 +269,11 @@ def query_table(table_name_or_class, query_index=None, descending=False, limit=N
     return _maybe_table_from_name(table_name_or_class).query(**query_kwargs)
 
 
-def scan_table(table_name_or_class, exclusive_start_key=None, **scan_kwargs):
+def scan_table(table_name_or_class, exclusive_start_key=None, limit=None, **scan_kwargs):
     if exclusive_start_key:
         scan_kwargs['ExclusiveStartKey'] = exclusive_start_key
+    if limit is not None:
+        scan_kwargs['Limit'] = limit
     return _maybe_table_from_name(table_name_or_class).scan(**scan_kwargs)
 
 
@@ -280,8 +282,8 @@ def _retrieve_all_matching(query_or_scan_func, *args, **kwargs):
     limit = kwargs.pop('limit', None)
     paginate = kwargs.pop('paginate', False)
     query_or_scan_kwargs = kwargs.copy()
-    if limit:
-        query_or_scan_kwargs['Limit'] = limit
+    if limit and paginate:
+        query_or_scan_kwargs['limit'] = limit
 
     response = query_or_scan_func(*args, **query_or_scan_kwargs)
     total_found = 0
