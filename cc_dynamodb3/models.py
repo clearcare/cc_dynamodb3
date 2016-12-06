@@ -179,9 +179,13 @@ class DynamoDBModel(Model):
             yield cls.from_row(row, metadata)
 
     @classmethod
-    def create(cls, **kwargs):
+    def build(cls, **kwargs):
         dynamodb_data = cls._initial_data_to_dynamodb(kwargs)
-        model = cls(dynamodb_data)
+        return cls(dynamodb_data)
+
+    @classmethod
+    def create(cls, **kwargs):
+        model = cls.build(**kwargs)
         model.save(overwrite=True)
         return model
 
