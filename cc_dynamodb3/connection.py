@@ -1,3 +1,4 @@
+import os
 from boto3.session import Session
 
 from .config import get_config
@@ -24,7 +25,7 @@ def get_connection(as_resource=True, use_cache=True):
     session = Session(
         aws_access_key_id=config.aws_access_key_id,
         aws_secret_access_key=config.aws_secret_access_key,
-        region_name='us-west-2',
+        region_name=os.environ.get('CC_AWS_REGION', 'us-west-2'),
     )
 
     if config.host:
