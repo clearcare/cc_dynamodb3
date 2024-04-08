@@ -2,7 +2,7 @@ import copy
 import json
 import os
 
-from bunch import Bunch
+from munch import Munch
 import redis
 import yaml
 
@@ -86,7 +86,7 @@ def set_config(config_file_path, namespace=None, aws_access_key_id=False, aws_se
 
     yaml_config = load_yaml_config()
 
-    _cached_config = Bunch({
+    _cached_config = Munch({
         'yaml': yaml_config,
         'namespace': namespace
                         or os.environ.get('CC_DYNAMODB_NAMESPACE'),
@@ -150,4 +150,4 @@ def get_config(**kwargs):
         # be invoked before calling get_config().
         set_config(**kwargs)
 
-    return Bunch(copy.deepcopy(_cached_config.toDict()))
+    return Munch(copy.deepcopy(_cached_config.toDict()))
