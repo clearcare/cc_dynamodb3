@@ -4,7 +4,7 @@ setup(
     name = 'cc_dynamodb3',
     packages=find_packages(),
     install_requires=[
-        'munch>=4.0.0',
+        'munch>=2.5.0',
         'boto3>=1.2.2',
         'PyYAML==3.10',
         'schematics==1.1.1',

@@ -4,7 +4,7 @@ run-name: $${{ github.actor }} is testing cc_dynamodb3 with python2.7
 
 on:
   pull_request:
-    types: [opened, edited, reopened]
+    types: [opened, synchronize, edited, reopened]
     paths:
       - '**'
 
