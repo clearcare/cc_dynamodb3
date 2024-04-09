@@ -18,6 +18,7 @@ pip2 install -r test_requirements.txt
 git fetch
 
 which pytest
+apropos pytest
 
 export PYTHONPATH=`pwd`
 pytest --version
