@@ -12,7 +12,7 @@ ls /usr/bin/pip*
 echo "WORKING DIR $(pwd)"
 
 pip2 install pytest
-pip2 install -r py2_requirements.txt
+pip2 install -r requirements.txt
 pip2 install -r test_requirements.txt
 
 git fetch
