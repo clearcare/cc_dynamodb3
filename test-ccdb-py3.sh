@@ -16,8 +16,8 @@ python3.11 --version
 pip3.11 --version
 
 pip3.11 install pytest
-pip3.11 install -r requirements.txt
-pip3.11 install -r test_requirements.txt
+pip3.11 install -r py3_requirements.txt
+pip3.11 install -r py3_test_requirements.txt
 
 echo "WORKING DIR $(pwd)"
 
