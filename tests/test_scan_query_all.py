@@ -1,4 +1,4 @@
-from conftest import DYNAMODB_FIXTURES
+from .conftest import DYNAMODB_FIXTURES
 from cc_dynamodb3.mocks import mock_table_with_data
 from cc_dynamodb3.table import scan_all_in_table, query_all_in_table
 

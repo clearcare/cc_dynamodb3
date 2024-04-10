@@ -19,7 +19,8 @@ def test_validate_raises_for_empty_strings_2():
     with pytest.raises(ValidationError) as exc_info:
         validate_no_empty_string_values({'nested': {'first_name': ''}})
 
-    assert 'nested => first_name' in exc_info.value.message[0]
+    #assert 'nested => first_name' in exc_info.value.message[0]
+    assert 'nested => first_name' in str(exc_info)
 
 
 def test_map_field_model_raises_validation_error_with_empty_top_level_attr():

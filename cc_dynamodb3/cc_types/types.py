@@ -1,4 +1,5 @@
 import json
+import six
 
 from schematics.exceptions import ConversionError, ValidationError
 from schematics.types import BaseType
@@ -12,7 +13,7 @@ class SetType(ListType):
             return set()
 
         try:
-            if isinstance(value, basestring):
+            if isinstance(value, six.string_types):
                 raise TypeError()
 
             if isinstance(value, dict):

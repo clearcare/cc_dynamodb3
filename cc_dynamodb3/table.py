@@ -1,3 +1,5 @@
+import six
+from six.moves import reduce
 from functools import partial
 import operator
 
@@ -125,7 +127,7 @@ def _get_table_metadata(table_name):
                              (attribute['AttributeName'], attribute['AttributeType'],
                               attribute_definitions[attribute['AttributeName']]['AttributeType']))
         attribute_definitions[attribute['AttributeName']] = attribute
-    metadata['AttributeDefinitions'] = attribute_definitions.values()
+    metadata['AttributeDefinitions'] = list(attribute_definitions.values())
 
     return metadata
 
@@ -197,7 +199,7 @@ def get_table(table_name, connection=None):
 
 
 def _maybe_table_from_name(table_name_or_class):
-    return get_table(table_name_or_class) if isinstance(table_name_or_class, basestring) else table_name_or_class
+    return get_table(table_name_or_class) if isinstance(table_name_or_class, six.string_types) else table_name_or_class
 
 def query_table(table_name_or_class, query_index=None, descending=False, limit=None,
                 exclusive_start_key=None, filter_expression=None, **query_keys):
