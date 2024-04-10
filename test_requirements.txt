@@ -7,5 +7,5 @@ mock==1.0.1
 #pytest==2.7.0
 #pytest-cov==1.8.1
 # git+https://github.com/spulec/moto.git@0.4.23#egg=moto
-moto==2.0.2
+moto==3.1.19
 -e .

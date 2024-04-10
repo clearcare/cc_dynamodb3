@@ -1,8 +1,9 @@
+import six
 import datetime
 import mock
 
 from cc_dynamodb3.models import to_json
-from factories.hash_only_model import (
+from .factories.hash_only_model import (
     HashOnlyModel,
     HashOnlyModelFactory,
 )
@@ -104,7 +105,7 @@ def test_negative_timestamp():
     HashOnlyModelFactory(agency_subdomain='metzler', external_id=123,
                          created=long_ago)
 
-    obj = HashOnlyModel.all().next()
+    obj = six.next(HashOnlyModel.all())
     assert obj.created.year == long_ago.year
     assert obj.item['created'] < 0
 
@@ -114,9 +115,9 @@ def test_all_paginate():
     HashOnlyModelFactory(agency_subdomain='metzler', external_id=123)
     HashOnlyModelFactory(agency_subdomain='metzler2', external_id=124)
 
-    obj, exclusive_start_key = HashOnlyModel.all(limit=1, paginate=True).next()
-    obj2, _ = HashOnlyModel.all(limit=1, paginate=True,
-                                exclusive_start_key=exclusive_start_key).next()
+    obj, exclusive_start_key = six.next(HashOnlyModel.all(limit=1, paginate=True))
+    obj2, _ = six.next(HashOnlyModel.all(limit=1, paginate=True,
+                                exclusive_start_key=exclusive_start_key))
 
     assert obj.external_id != obj2.external_id
     assert {obj.external_id, obj2.external_id} == {123, 124}

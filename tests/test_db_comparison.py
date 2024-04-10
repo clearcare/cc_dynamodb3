@@ -2,7 +2,7 @@ import datetime
 
 from cc_dynamodb3.models import return_different_fields_except
 
-from factories.hash_only_model import HashOnlyModelFactory
+from .factories.hash_only_model import HashOnlyModelFactory
 
 
 def test_return_different_fields_except_should_ignore_and_return_true():
