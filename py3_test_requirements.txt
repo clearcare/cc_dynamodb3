@@ -1,4 +1,4 @@
--r requirements.txt
+#-r requirements.txt
 pytest
 pytest-coverage
 fake-factory==0.5.0
@@ -6,6 +6,6 @@ factory-boy==2.6.0
 mock==1.0.1
 #pytest==2.7.0
 #pytest-cov==1.8.1
-git+https://github.com/spulec/moto.git@0.4.23#egg=moto
-#moto==2.0.2
+# git+https://github.com/spulec/moto.git@0.4.23#egg=moto
+moto==3.1.19
 -e .

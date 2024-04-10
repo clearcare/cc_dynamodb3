@@ -1,0 +1,18 @@
+
+name: test-cc_dynamodb3-py3
+run-name: $${{ github.actor }} is testing cc_dynamodb3 with python3.11
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited, reopened]
+    paths:
+      - '**'
+
+jobs:
+  run-ccdb-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: test-cc_dynamodb3-step
+      run: bash test-ccdb-py3.sh
+
