@@ -1,4 +1,4 @@
--r requirements.txt
+#-r requirements.txt
 pytest
 pytest-coverage
 fake-factory==0.5.0
