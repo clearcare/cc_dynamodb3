@@ -56,7 +56,7 @@ def load_yaml_config():
             return json.loads(yaml_config)
 
     with open(_config_file_path) as config_file:
-        yaml_config = yaml.load(config_file)
+        yaml_config = yaml.safe_load(config_file)
         if redis_cache:
             redis_config = get_redis_config()
             redis_cache.setex(CONFIG_CACHE_KEY, redis_config['cache_seconds'], json.dumps(yaml_config))
