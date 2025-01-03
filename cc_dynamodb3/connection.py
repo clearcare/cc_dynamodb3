@@ -22,11 +22,14 @@ def get_connection(as_resource=True, use_cache=True):
 
     config = get_config()
 
-    session = Session(
-        aws_access_key_id=config.aws_access_key_id,
-        aws_secret_access_key=config.aws_secret_access_key,
-        region_name=os.environ.get('CC_AWS_REGION', 'us-west-2'),
-    )
+    # access key not supported anymore; must use automatic role-based auth
+    #session = Session(
+    #    aws_access_key_id=config.aws_access_key_id,
+    #    aws_secret_access_key=config.aws_secret_access_key,
+    #    region_name=os.environ.get('CC_AWS_REGION', 'us-west-2'),
+    #)
+
+    session = Session(region_name=os.environ.get('CC_AWS_REGION', 'us-west-2'))
 
     if config.host:
         endpoint_url = '%s://%s:%s' % (
